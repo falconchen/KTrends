@@ -1,0 +1,5 @@
+# created by virtualenv automatically
+.env
+.vscode/
+__pycache__/
+home2.html

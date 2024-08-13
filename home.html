@@ -1,0 +1,389 @@
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI内容助手</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/static/images/icon.jpeg" sizes="64x64">
+  <link rel="apple-touch-icon" href="/static/images/icon.jpeg" sizes="64x64">
+  <!-- Preload SVG icons -->
+<link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/bulb-outline.svg" as="image" type="image/svg+xml">
+<link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/document-text-outline.svg" as="image" type="image/svg+xml">
+<link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/share-social-outline.svg" as="image" type="image/svg+xml">
+<link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/pricetags-outline.svg" as="image" type="image/svg+xml">
+<link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/language-outline.svg" as="image" type="image/svg+xml">
+<link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/newspaper-outline.svg" as="image" type="image/svg+xml">
+<link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/megaphone-outline.svg" as="image" type="image/svg+xml">
+<link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/list-outline.svg" as="image" type="image/svg+xml">
+<link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/key-outline.svg" as="image" type="image/svg+xml">
+<link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/warning-outline.svg" as="image" type="image/svg+xml">
+<link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/hourglass-outline.svg" as="image" type="image/svg+xml">
+<link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/copy-outline.svg" as="image" type="image/svg+xml">
+<link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/checkmark-circle-outline.svg" as="image" type="image/svg+xml">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      padding-top: 70px;
+    }
+    .container {
+      max-width: 800px;
+      margin-top: 30px;
+    }
+    .tab-content {
+      background-color: #fff;
+      border: 1px solid #dee2e6;
+      border-top: none;
+      border-radius: 0 0 0.25rem 0.25rem;
+      padding: 20px;
+    }
+    .nav-tabs .nav-link {
+      display: flex;
+      align-items: center;
+    }
+    .nav-tabs .nav-link ion-icon {
+      margin-right: 5px;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #e9f7ef;
+      border-radius: 4px;
+      display: none;
+      position: relative;
+    }
+    .copy-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      cursor: pointer;
+      background-color: #fff;
+      border-radius: 4px;
+      padding: 5px 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+    }
+    .copy-button:hover {
+      background-color: #f0f0f0;
+    }
+    .copy-button ion-icon {
+      margin-right: 5px;
+    }
+    .alert-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1050;
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+    .alert {
+      margin-bottom: 0;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+      max-width: 800px;
+      width: 100%;
+    }
+    .alert.show {
+      opacity: 1;
+    }
+    h1.page-title {
+      margin-top: 20px;
+    }
+    .alert ion-icon {
+      margin-right: 5px;
+    }
+  </style>
+  <script type="module" src="https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule="" src="https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.js"></script>
+  </head>
+  <body>
+  <div class="alert-container"></div>
+  <div class="container">
+    <h1 class="text-center mb-4 page-title"><ion-icon name="bulb-outline"></ion-icon> AI内容助手</h1>
+    
+    <ul class="nav nav-tabs" id="myTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" aria-controls="summary" aria-selected="true">
+          <ion-icon name="document-text-outline"></ion-icon> 内容摘要
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button" role="tab" aria-controls="social" aria-selected="false">
+          <ion-icon name="share-social-outline"></ion-icon> 社交推广
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="keywords-tab" data-bs-toggle="tab" data-bs-target="#keywords" type="button" role="tab" aria-controls="keywords" aria-selected="false">
+          <ion-icon name="pricetags-outline"></ion-icon> 关键词
+        </button>
+      </li>
+    </ul>
+    
+    <div class="tab-content" id="myTabContent">
+      <div class="tab-pane fade show active" id="summary" role="tabpanel" aria-labelledby="summary-tab">
+        <div class="mb-3">
+          <textarea class="form-control" id="summary-content" rows="10" placeholder="请输入文章内容或URL..."></textarea>
+        </div>
+        <div class="mb-3 css-selector-input" id="summary-css-selector-group" style="display: none;">
+          <input type="text" class="form-control" id="summary-css-selector" placeholder="请输入CSS选择器，例如：#content .article-body（可选）">
+        </div>
+        <div class="mb-3">
+          <label for="summary-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 选择语言：</label>
+          <select class="form-select" id="summary-language">
+            <option value="zh-CN">简体中文</option>
+            <option value="zh-TW">繁体中文</option>
+            <option value="en">英文</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="processSummary()"><ion-icon name="newspaper-outline"></ion-icon> 生成摘要</button>
+        <div id="summary-result" class="result"></div>
+      </div>
+      
+      <div class="tab-pane fade" id="social" role="tabpanel" aria-labelledby="social-tab">
+        <div class="mb-3">
+          <textarea class="form-control" id="social-content" rows="10" placeholder="请输入文章内容或URL..."></textarea>
+        </div>
+        <div class="mb-3 css-selector-input" id="social-css-selector-group" style="display: none;">
+          <input type="text" class="form-control" id="social-css-selector" placeholder="请输入CSS选择器，例如：#main-content .post-body（可选）">
+        </div>
+        <div class="mb-3">
+          <label for="social-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 选择语言：</label>
+          <select class="form-select" id="social-language">
+            <option value="zh-CN">简体中文</option>
+            <option value="zh-TW">繁体中文</option>
+            <option value="en">英文</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="processSocial()"><ion-icon name="megaphone-outline"></ion-icon> 生成社交推广文案</button>
+        <div id="social-result" class="result"></div>
+      </div>
+      
+      <div class="tab-pane fade" id="keywords" role="tabpanel" aria-labelledby="keywords-tab">
+        <div class="mb-3">
+          <textarea class="form-control" id="keywords-content" rows="10" placeholder="请输入文章内容或URL..."></textarea>
+        </div>
+        <div class="mb-3 css-selector-input" id="keywords-css-selector-group" style="display: none;">
+          <input type="text" class="form-control" id="keywords-css-selector" placeholder="请输入CSS选择器，例如：.article-content p（可选）">
+        </div>
+        <div class="mb-3">
+          <label for="keywords-count" class="form-label"><ion-icon name="list-outline"></ion-icon> 关键词数量：</label>
+          <input type="number" class="form-control" id="keywords-count" min="1" max="20" value="5">
+        </div>
+        <button class="btn btn-primary" onclick="processKeywords()"><ion-icon name="key-outline"></ion-icon> 提取关键词</button>
+        <div id="keywords-result" class="result"></div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function isURL(str) {
+      const urlRegex = /^(https?:\/\/)/i;
+      return urlRegex.test(str.trim());
+    }
+  
+    let currentAlert = null;
+  
+    function showAlert(message, type = 'warning') {
+      const alertContainer = document.querySelector('.alert-container');
+      
+      if (currentAlert) {
+        currentAlert.remove();
+      }
+  
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type} alert-dismissible fade`;
+      alertDiv.setAttribute('role', 'alert');
+      alertDiv.innerHTML = `
+        <ion-icon name="warning-outline"></ion-icon>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      `;
+      alertContainer.appendChild(alertDiv);
+  
+      setTimeout(() => {
+        alertDiv.classList.add('show');
+      }, 10);
+  
+      setTimeout(() => {
+        alertDiv.classList.remove('show');
+        setTimeout(() => {
+          alertContainer.removeChild(alertDiv);
+          if (currentAlert === alertDiv) {
+            currentAlert = null;
+          }
+        }, 500);
+      }, 2000);
+  
+      currentAlert = alertDiv;
+    }
+  
+    function processSummary() {
+      const content = document.getElementById('summary-content').value.trim();
+      const language = document.getElementById('summary-language').value;
+      const cssSelector = document.getElementById('summary-css-selector').value.trim();
+      const resultDiv = document.getElementById('summary-result');
+      
+      if (!content) {
+        showAlert('请输入内容或URL');
+        return;
+      }
+  
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<p class="text-center"><ion-icon name="hourglass-outline"></ion-icon> AI正在生成摘要，请稍候...</p>';
+  
+      setTimeout(() => {
+        const summary = `这是一个由AI生成的${language === 'zh-CN' ? '简体中文' : language === 'zh-TW' ? '繁体中文' : '英文'}摘要。内容基于用户输入${isURL(content) ? 'URL' : '文本'}进行分析。${isURL(content) && cssSelector ? '使用了CSS选择器：' + cssSelector : ''}`;
+        resultDiv.innerHTML = `
+          <div class="copy-button" onclick="copyContent('summary-result')">
+            <ion-icon name="copy-outline"></ion-icon>
+            复制
+          </div>
+          <h2><ion-icon name="document-text-outline"></ion-icon> 文章摘要</h2><p>${summary}</p>
+        `;
+      }, 2000);
+      
+      setCookie('summary-language', language, 30);
+    }
+  
+    function processSocial() {
+      const content = document.getElementById('social-content').value.trim();
+      const language = document.getElementById('social-language').value;
+      const cssSelector = document.getElementById('social-css-selector').value.trim();
+      const resultDiv = document.getElementById('social-result');
+      
+      if (!content) {
+        showAlert('请输入内容或URL');
+        return;
+      }
+  
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<p class="text-center"><ion-icon name="hourglass-outline"></ion-icon> AI正在生成社交推广文案，请稍候...</p>';
+  
+      setTimeout(() => {
+        const socialPost = `这是一条由AI生成的${language === 'zh-CN' ? '简体中文' : language === 'zh-TW' ? '繁体中文' : '英文'}社交推广文案。基于用户输入的${isURL(content) ? 'URL' : '文本'}内容创作。${isURL(content) && cssSelector ? '应用了CSS选择器：' + cssSelector : ''}`;
+        resultDiv.innerHTML = `
+          <div class="copy-button" onclick="copyContent('social-result')">
+            <ion-icon name="copy-outline"></ion-icon>
+            复制
+          </div>
+          <h2><ion-icon name="megaphone-outline"></ion-icon> 社交推广文案</h2><p>${socialPost}</p>
+        `;
+      }, 2000);
+      
+      setCookie('social-language', language, 30);
+    }
+  
+    function processKeywords() {
+      const content = document.getElementById('keywords-content').value.trim();
+      const count = document.getElementById('keywords-count').value;
+      const cssSelector = document.getElementById('keywords-css-selector').value.trim();
+      const resultDiv = document.getElementById('keywords-result');
+      
+      if (!content) {
+        showAlert('请输入内容或URL');
+        return;
+      }
+  
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<p class="text-center"><ion-icon name="hourglass-outline"></ion-icon> AI正在提取关键词，请稍候...</p>';
+  
+      setTimeout(() => {
+        const keywords = ['AI', '内容助手', '关键词', '摘要', '社交推广'].slice(0, count);
+        resultDiv.innerHTML = `
+          <div class="copy-button" onclick="copyContent('keywords-result')">
+            <ion-icon name="copy-outline"></ion-icon>
+            复制
+          </div>
+          <h2><ion-icon name="pricetags-outline"></ion-icon> 关键词</h2><p>基于${isURL(content) ? 'URL' : '文本'}提取的${count}个关键词${isURL(content) && cssSelector ? '（使用CSS选择器：' + cssSelector + '）' : ''}：${keywords.join(', ')}</p>
+        `;
+      }, 2000);
+      
+      setCookie('keywords-count', count, 30);
+    }
+  
+    function showCssSelectorInput(textareaId, cssSelectorGroupId) {
+      const textarea = document.getElementById(textareaId);
+      const cssSelectorGroup = document.getElementById(cssSelectorGroupId);
+      
+      if (isURL(textarea.value)) {
+        cssSelectorGroup.style.display = 'block';
+      } else {
+        cssSelectorGroup.style.display = 'none';
+      }
+    }
+  
+    function copyContent(elementId) {
+      const element = document.getElementById(elementId);
+      const text = element.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const copyButton = element.querySelector('.copy-button');
+        copyButton.innerHTML = `
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          已复制
+        `;
+        copyButton.style.backgroundColor = '#28a745';
+        copyButton.style.color = 'white';
+        setTimeout(() => {
+          copyButton.innerHTML = `
+            <ion-icon name="copy-outline"></ion-icon>
+            复制
+          `;
+          copyButton.style.backgroundColor = '';
+          copyButton.style.color = '';
+        }, 2000);
+      }).catch(err => {
+        console.error('无法复制文本: ', err);
+        showAlert('复制失败，请手动复制', 'danger');
+      });
+    }
+  
+    function setCookie(name, value, days) {
+      let expires = "";
+      if (days) {
+        let date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+      }
+      document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+    }
+  
+    function getCookie(name) {
+      let nameEQ = name + "=";
+      let ca = document.cookie.split(';');
+      for(let i=0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0)==' ') c = c.substring(1,c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+      }
+      return null;
+    }
+  
+    function loadSavedSettings() {
+      let summaryLanguage = getCookie('summary-language');
+      if (summaryLanguage) {
+        document.getElementById('summary-language').value = summaryLanguage;
+      }
+  
+      let socialLanguage = getCookie('social-language');
+      if (socialLanguage) {
+        document.getElementById('social-language').value = socialLanguage;
+      }
+  
+      let keywordsCount = getCookie('keywords-count');
+      if (keywordsCount) {
+        document.getElementById('keywords-count').value = keywordsCount;
+      }
+    }
+  
+    document.addEventListener('DOMContentLoaded', loadSavedSettings);
+  
+    document.getElementById('summary-content').addEventListener('input', () => showCssSelectorInput('summary-content', 'summary-css-selector-group'));
+    document.getElementById('social-content').addEventListener('input', () => showCssSelectorInput('social-content', 'social-css-selector-group'));
+    document.getElementById('keywords-content').addEventListener('input', () => showCssSelectorInput('keywords-content', 'keywords-css-selector-group'));
+  </script>
+  </body>
+  </html>
