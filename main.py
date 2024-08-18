@@ -31,6 +31,8 @@ openai_model = os.getenv("OPENAI_MODEL")
 keywords_prompt_template = os.getenv("KEYWORDS_PROMPT")
 summary_prompt_template = os.getenv("SUMMARY_PROMPT")
 socail_prompt_template = os.getenv("SOCAIL_POST_PROMPT")
+translate_prompt_template = os.getenv("TRANSLATE_POST_PROMPT")
+
 lang = os.getenv("DEFAULT_LANG")
 
 
@@ -263,3 +265,30 @@ async def extract_content(input: str = Form(..., description="The html codes."))
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
     
 
+
+@app.post("/api/get_translation")
+async def get_translation(input: str = Form(..., description="The text from which to get translate"),
+                       lang: str = Form(..., description="The target language of the text ai translate to.")
+                       ):
+                       
+    
+    try:
+        #if input is url        
+        text = process_input(input)
+
+        # Prepare the prompt using the template and provided parameters        
+        prompt = translate_prompt_template.format(            
+            text=text,  # Strip any leading/trailing whitespace
+            lang=lang
+        )   
+        
+        result = get_openai_response(prompt)
+        print(result)
+
+        return {
+            "result": result
+        } 
+
+    except Exception as e:        
+        print(f"Internal error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")

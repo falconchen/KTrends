@@ -1,4 +1,3 @@
-
 <html><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -111,68 +110,37 @@
     <h1 class="text-center mb-4 page-title"><ion-icon name="bulb-outline"></ion-icon> AI内容助手</h1>
     
     <ul class="nav nav-tabs" id="myTab" role="tablist">
+
+      
       <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" aria-controls="summary" aria-selected="true">
-          <ion-icon name="document-text-outline"></ion-icon> 内容摘要
+        <button class="nav-link active" id="keywords-tab" data-bs-toggle="tab" data-bs-target="#keywords" type="button" role="tab" aria-controls="keywords" aria-selected="false">
+          <ion-icon name="pricetags-outline"></ion-icon> 关键词
         </button>
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button" role="tab" aria-controls="social" aria-selected="false">
-          <ion-icon name="share-social-outline"></ion-icon> 社交推广
+          <ion-icon name="share-social-outline"></ion-icon> 社交推文
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="keywords-tab" data-bs-toggle="tab" data-bs-target="#keywords" type="button" role="tab" aria-controls="keywords" aria-selected="false">
-          <ion-icon name="pricetags-outline"></ion-icon> 关键词
+        <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" aria-controls="summary" aria-selected="true">
+          <ion-icon name="document-text-outline"></ion-icon> 内容摘要
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="translation-tab" data-bs-toggle="tab" data-bs-target="#translation" type="button" role="tab" aria-controls="translation" aria-selected="false">
+          <ion-icon name="globe-outline"></ion-icon> 翻译助手
         </button>
       </li>
     </ul>
     
     <div class="tab-content" id="myTabContent">
-      <div class="tab-pane fade show active" id="summary" role="tabpanel" aria-labelledby="summary-tab">
-        <div class="mb-3">
-          <textarea class="form-control content-input" id="summary-content" rows="10" placeholder="请输入文章内容或URL..."></textarea>
-        </div>
-        <div class="mb-3 css-selector-input" id="summary-css-selector-group" style="display: none;">
-          <input type="text" class="form-control css-selector" id="summary-css-selector" placeholder="请输入CSS选择器，例如：#content .article-body（可选，提取内容会更准确）">
-        </div>
-        <div class="mb-3">
-          <label for="summary-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 选择语言：</label>
-          <select class="form-select language-select" id="summary-language">
-            <option value="zh-CN">简体中文</option>
-            <option value="zh-HK">繁体中文</option>
-            <option value="en">英文</option>
-          </select>
-        </div>
-        <button class="btn btn-primary" onclick="processSummary()"><ion-icon name="newspaper-outline"></ion-icon> 生成摘要</button>
-        <div id="summary-result" class="result"></div>
-      </div>
-      
-      <div class="tab-pane fade" id="social" role="tabpanel" aria-labelledby="social-tab">
-        <div class="mb-3">
-          <textarea class="form-control content-input" id="social-content" rows="10" placeholder="请输入文章内容或URL..."></textarea>
-        </div>
-        <div class="mb-3 css-selector-input" id="social-css-selector-group" style="display: none;">
-          <input type="text" class="form-control css-selector" id="social-css-selector" placeholder="请输入CSS选择器，例如：#main-content .post-body（可选，提取内容会更准确）">
-        </div>
-        <div class="mb-3">
-          <label for="social-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 选择语言：</label>
-          <select class="form-select language-select" id="social-language">
-            <option value="zh-CN">简体中文</option>
-            <option value="zh-HK">繁体中文</option>
-            <option value="en">英文</option>
-          </select>
-        </div>
-        <button class="btn btn-primary" onclick="processSocial()"><ion-icon name="megaphone-outline"></ion-icon> 生成社交推广文案</button>
-        <div id="social-result" class="result"></div>
-      </div>
-      
-      <div class="tab-pane fade" id="keywords" role="tabpanel" aria-labelledby="keywords-tab">
+      <div class="tab-pane fade  show active" id="keywords" role="tabpanel" aria-labelledby="keywords-tab">
         <div class="mb-3">
           <textarea class="form-control content-input" id="keywords-content" rows="10" placeholder="请输入文章内容或URL..."></textarea>
         </div>
         <div class="mb-3 css-selector-input" id="keywords-css-selector-group" style="display: none;">
-          <input type="text" class="form-control css-selector" id="keywords-css-selector" placeholder="请输入CSS选择器，例如：.article-content p（可选，提取内容会更准确）">
+          <input type="text" class="form-control css-selector" id="keywords-css-selector" placeholder="请输入CSS选择器，例如：div#article（可选，内容提取更快速准确）">
         </div>
         <div class="mb-3">
           <label for="keywords-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 选择语言：</label>
@@ -180,6 +148,7 @@
             <option value="zh-CN">简体中文</option>
             <option value="zh-HK">繁体中文</option>
             <option value="en">英文</option>
+            <option value="jp">日文</option>
           </select>
         </div>
         <div class="mb-3">
@@ -189,6 +158,66 @@
         <button class="btn btn-primary" onclick="processKeywords()"><ion-icon name="key-outline"></ion-icon> 提取关键词</button>
         <div id="keywords-result" class="result"></div>
       </div>
+      
+      <div class="tab-pane fade" id="social" role="tabpanel" aria-labelledby="social-tab">
+        <div class="mb-3">
+          <textarea class="form-control content-input" id="social-content" rows="10" placeholder="请输入文章内容或URL..."></textarea>
+        </div>
+        <div class="mb-3 css-selector-input" id="social-css-selector-group" style="display: none;">
+          <input type="text" class="form-control css-selector" id="social-css-selector" placeholder="请输入CSS选择器，例如：div#article（可选，内容提取更快速准确）">
+        </div>
+        <div class="mb-3">
+          <label for="social-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 选择语言：</label>
+          <select class="form-select language-select" id="social-language">
+            <option value="zh-CN">简体中文</option>
+            <option value="zh-HK">繁体中文</option>
+            <option value="en">英文</option>
+            <option value="jp">日文</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="processSocial()"><ion-icon name="megaphone-outline"></ion-icon> 生成社交推广文案</button>
+        <div id="social-result" class="result"></div>
+      </div>
+      <div class="tab-pane fade" id="summary" role="tabpanel" aria-labelledby="summary-tab">
+        <div class="mb-3">
+          <textarea class="form-control content-input" id="summary-content" rows="10" placeholder="请输入文章内容或URL..."></textarea>
+        </div>
+        <div class="mb-3 css-selector-input" id="summary-css-selector-group" style="display: none;">
+          <input type="text" class="form-control css-selector" id="summary-css-selector" placeholder="请输入CSS选择器，例如：div#article（可选，内容提取更快速准确）">
+        </div>
+        <div class="mb-3">
+          <label for="summary-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 选择语言：</label>
+          <select class="form-select language-select" id="summary-language">
+            <option value="zh-CN">简体中文</option>
+            <option value="zh-HK">繁体中文</option>
+            <option value="en">英文</option>
+            <option value="jp">日文</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="processSummary()"><ion-icon name="newspaper-outline"></ion-icon> 生成摘要</button>
+        <div id="summary-result" class="result"></div>
+      </div>
+      
+      
+      <!-- New Translation tab -->
+    <div class="tab-pane fade" id="translation" role="tabpanel" aria-labelledby="translation-tab">
+      <div class="mb-3">
+        <textarea class="form-control content-input" id="translation-content" rows="10" placeholder="请输入需要翻译的文本..."></textarea>
+      </div>
+      <div class="mb-3">
+        <label for="translation-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 目标语言：</label>
+        <select class="form-select  language-select" id="translation-language">
+          <option value="zh-CN">简体中文</option>
+          <option value="zh-HK">繁体中文</option>
+          <option value="en">英文</option>
+          <option value="jp">日文</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="processTranslation()"><ion-icon name="globe-outline"></ion-icon> 翻译</button>
+      <div id="translation-result" class="result"></div>
+    </div>
+
+
     </div>
   </div>
   
@@ -230,7 +259,7 @@
             currentAlert = null;
           }
         }, 500);
-      }, 200000);
+      }, 3000);
   
       currentAlert = alertDiv;
     }
@@ -400,6 +429,54 @@
       
       setCookie('keywords-language', language, 30);
       setCookie('keywords-count', count, 30);
+    }
+
+    function processTranslation() {
+      const content = document.getElementById('translation-content').value.trim();
+      const language = document.getElementById('translation-language').value;
+      const resultDiv = document.getElementById('translation-result');
+      
+      if (!content) {
+        showAlert('请输入需要翻译的文本');
+        return;
+      }
+  
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<p class="text-center"><ion-icon name="hourglass-outline"></ion-icon> AI正在翻译，请稍候...</p>';
+  
+      const formData = new FormData();
+      formData.append('input', content);
+      formData.append('lang', language);
+  
+      fetch('/api/get_translation', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('HTTP error ' + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        const translation = data.result.replace(/\n/g, '<br>');
+        resultDiv.innerHTML = `
+          <div class="copy-button" onclick="copyContent('translation-result')">
+            <ion-icon name="copy-outline"></ion-icon>
+            复制
+          </div>
+          <h2><ion-icon name="globe-outline"></ion-icon> 翻译结果</h2>
+          <p>${translation}</p>
+        `;
+        resultDiv.dataset.content = data.result;
+      })
+      .catch(detail => {
+        console.error('Error:', detail);
+        showAlert('翻译失败，请稍后再试', 'danger');
+        resultDiv.style.display = 'none';
+      });
+      
+      setCookie('translation-language', language, 30);
     }
   
     function showCssSelectorInput() {
