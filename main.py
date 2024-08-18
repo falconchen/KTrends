@@ -273,8 +273,8 @@ async def get_translation(input: str = Form(..., description="The text from whic
                        
     
     try:
-        #if input is url        
-        text = process_input(input)
+        
+        text = input.strip()
 
         # Prepare the prompt using the template and provided parameters        
         prompt = translate_prompt_template.format(            
