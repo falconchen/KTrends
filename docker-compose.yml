@@ -1,0 +1,12 @@
+services:
+  ktrends:
+    build: .
+    container_name: ktrends
+    image: falconchen/ktrends
+    volumes:
+      - ./:/app
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    restart: always

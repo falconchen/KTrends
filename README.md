@@ -31,3 +31,37 @@ curl -X 'GET' \
 ``` 
 pip freeze >requirements.txt
 ```
+
+## 部署到服务器
+```
+pip install -r requirements.txt
+```
+
+## 对 serv00
+部分包需要特殊安装 orjson, pydantic_core, uvloop, watchfiles
+
+```
+cpuset -l 0 pip install -r requirements.txt
+
+```
+
+参考：<https://forum.serv00.com/d/170-no-support-for-python-libraries>
+```
+cpuset -l 0 pip install numpy
+cpuset -l 0 pip install pandas
+
+cpuset -l 0 pip install  orjson
+cpuset -l 0 pip install uvloop
+cpuset -l 0 pip install pydantic_core
+cpuset -l 0 pip install watchfiles
+
+```
+
+## 构建docker 镜像（多架构交叉编译）
+
+```
+docker buildx build --platform linux/amd64,linux/arm64 -t falconchen/ktrends:latest --push .
+
+```
+文章：
+<https://d.cellmean.com/p/caa450dbab14>
