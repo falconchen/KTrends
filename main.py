@@ -31,6 +31,7 @@ openai_model = os.getenv("OPENAI_MODEL")
 keywords_prompt_template = os.getenv("KEYWORDS_PROMPT")
 summary_prompt_template = os.getenv("SUMMARY_PROMPT")
 socail_prompt_template = os.getenv("SOCAIL_POST_PROMPT")
+#socail_prompt_template = os.getenv("XHS_POST_PROMPT")
 translate_prompt_template = os.getenv("TRANSLATE_POST_PROMPT")
 
 lang = os.getenv("DEFAULT_LANG")
