@@ -2,7 +2,7 @@ services:
   ktrends:
     build: .
     container_name: ktrends
-    image: falconchen/ktrends
+    image: falconchen/ktrends:${PLATFORM:-arm64}-latest
     volumes:
       - ./:/app
     environment:
