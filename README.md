@@ -13,7 +13,7 @@ source KTrends/bin/activate
 uvicorn main:app --reload --port 8000
 ```
 
-##传参数：如v2ex
+## 传参数：如v2ex
 
 ```
 url：https://v2ex.com/t/1056911
@@ -25,3 +25,9 @@ curl -X 'GET' \
   'http://localhost:8000/fetch_url?url=https%3A%2F%2Fv2ex.com%2Ft%2F1056911&selector=div.topic_content%2Cdiv%5Bid%5E%3D%22r_%22%5D' \
   -H 'accept: application/json'
   ```
+
+## freeze
+
+``` 
+pip freeze >requirements.txt
+```
