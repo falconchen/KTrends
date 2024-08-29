@@ -6,7 +6,11 @@
   <link rel="icon" type="image/jpeg" href="/static/images/icon.png" sizes="64x64">
   <link rel="apple-touch-icon" href="/static/images/icon.png" sizes="64x64">
   
-  <!-- Preload SVG icons -->
+  <!-- Preload dns of unpkg -->
+  <link rel="dns-prefetch" href="https://unpkg.com">
+
+  <!-- Preload SVG icons ignore-->
+   <!--
   <link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/bulb-outline.svg" as="image" type="image/svg+xml">
   <link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/document-text-outline.svg" as="image" type="image/svg+xml">
   <link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/share-social-outline.svg" as="image" type="image/svg+xml">
@@ -20,15 +24,16 @@
   <link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/hourglass-outline.svg" as="image" type="image/svg+xml">
   <link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/copy-outline.svg" as="image" type="image/svg+xml">
   <link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/checkmark-circle-outline.svg" as="image" type="image/svg+xml">
+  -->
   
   <style>
     body {
       background-color: #f8f9fa;
-      padding-top: 70px;
+      /*padding-top: 70px;*/
     }
     .container {
       max-width: 800px;
-      margin-top: 30px;
+      /*margin-top: 30px;*/
     }
     .tab-content {
       background-color: #fff;
@@ -74,7 +79,7 @@
       margin-right: 5px;
     }
     .alert-container {
-      position: fixed;
+      position: absolute;
       top: 1rem;
       left: 0;
       right: 0;
