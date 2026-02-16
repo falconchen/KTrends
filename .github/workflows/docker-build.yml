@@ -18,6 +18,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Get current date
+        id: date
+        run: echo "DATE=$(date +'%Y.%m.%d')" >> $GITHUB_OUTPUT
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -36,7 +40,9 @@ jobs:
           context: .
           platforms: linux/arm64
           push: true
-          tags: falconchen/ktrends:arm64-latest
+          tags: |
+            falconchen/ktrends:arm64-latest
+            falconchen/ktrends:arm64-${{ steps.date.outputs.DATE }}
           cache-from: type=registry,ref=falconchen/ktrends:arm64-latest
           cache-to: type=inline
 
@@ -46,15 +52,23 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
-          tags: falconchen/ktrends:amd64-latest
+          tags: |
+            falconchen/ktrends:amd64-latest
+            falconchen/ktrends:amd64-${{ steps.date.outputs.DATE }}
           cache-from: type=registry,ref=falconchen/ktrends:amd64-latest
           cache-to: type=inline
 
       - name: Create and push manifest
         run: |
+          # Create latest manifest
           docker buildx imagetools create -t falconchen/ktrends:latest \
             falconchen/ktrends:amd64-latest \
             falconchen/ktrends:arm64-latest
+
+          # Create date-based manifest
+          docker buildx imagetools create -t falconchen/ktrends:${{ steps.date.outputs.DATE }} \
+            falconchen/ktrends:amd64-${{ steps.date.outputs.DATE }} \
+            falconchen/ktrends:arm64-${{ steps.date.outputs.DATE }}
 
       - name: Send Bark notification on success
         if: success()
@@ -63,7 +77,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{
               "title": "✅ Docker 构建成功",
-              "body": "KTrends Docker 镜像已成功构建并推送到 DockerHub\n\n版本: arm64-latest, amd64-latest, latest",
+              "body": "KTrends Docker 镜像已成功构建并推送到 DockerHub\n\n版本标签:\n• latest\n• ${{ steps.date.outputs.DATE }}\n• arm64-latest, arm64-${{ steps.date.outputs.DATE }}\n• amd64-latest, amd64-${{ steps.date.outputs.DATE }}",
               "icon": "https://www.docker.com/favicon.ico"
             }'
 
