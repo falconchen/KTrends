@@ -67,17 +67,22 @@
       cursor: pointer;
       background-color: #fff;
       border-radius: 4px;
-      padding: 5px 10px;
+      padding: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       display: flex;
       align-items: center;
-      font-size: 14px;
+      justify-content: center;
+      font-size: 18px;
+      transition: all 0.3s ease;
     }
     .copy-button:hover {
       background-color: #f0f0f0;
     }
+    .copy-button.copied {
+      background-color: #28a745;
+      color: white;
+    }
     .copy-button ion-icon {
-      margin-right: 5px;
     }
     .alert-container {
       position: absolute;
@@ -318,7 +323,6 @@
         resultDiv.innerHTML = `
           <div class="copy-button" onclick="copyContent('summary-result')">
             <ion-icon name="copy-outline"></ion-icon>
-            复制
           </div>
           <h5><ion-icon name="document-text-outline"></ion-icon> 文章摘要</h5><p id="summary-content-text"></p>
         `;
@@ -407,7 +411,6 @@
         resultDiv.innerHTML = `
           <div class="copy-button" onclick="copyContent('social-result')">
             <ion-icon name="copy-outline"></ion-icon>
-            复制
           </div>
           <h5><ion-icon name="megaphone-outline"></ion-icon> 社交推广文案</h5>
           <p id="social-content-text"></p>
@@ -497,7 +500,6 @@
         resultDiv.innerHTML = `
           <div class="copy-button" onclick="copyContent('keywords-result')">
             <ion-icon name="copy-outline"></ion-icon>
-            复制
           </div>
           <h5><ion-icon name="pricetags-outline"></ion-icon> 关键词</h5>
           <p id="keywords-content-text"></p>
@@ -582,7 +584,6 @@
         resultDiv.innerHTML = `
           <div class="copy-button" onclick="copyContent('translation-result')">
             <ion-icon name="copy-outline"></ion-icon>
-            复制
           </div>
           <h5><ion-icon name="globe-outline"></ion-icon> 翻译结果</h5>
           <p id="translation-content-text"></p>
@@ -651,19 +652,18 @@
       const text = element.dataset.content;
       navigator.clipboard.writeText(text).then(() => {
         const copyButton = element.querySelector('.copy-button');
+        const originalHTML = copyButton.innerHTML;
+
+        // 平滑切换到复制成功状态
+        copyButton.classList.add('copied');
         copyButton.innerHTML = `
           <ion-icon name="checkmark-circle-outline"></ion-icon>
-          复制成功!
         `;
-        copyButton.style.backgroundColor = '#28a745';
-        copyButton.style.color = 'white';
+
         setTimeout(() => {
-          copyButton.innerHTML = `
-            <ion-icon name="copy-outline"></ion-icon>
-            复制
-          `;
-          copyButton.style.backgroundColor = '';
-          copyButton.style.color = '';
+          // 平滑切换回原始状态
+          copyButton.classList.remove('copied');
+          copyButton.innerHTML = originalHTML;
         }, 2000);
       }).catch(err => {
         console.error('无法复制文本: ', err);
