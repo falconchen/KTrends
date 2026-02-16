@@ -55,3 +55,26 @@ jobs:
           docker buildx imagetools create -t falconchen/ktrends:latest \
             falconchen/ktrends:amd64-latest \
             falconchen/ktrends:arm64-latest
+
+      - name: Send Bark notification on success
+        if: success()
+        run: |
+          curl -X POST "https://api.day.app/${{ secrets.BARK_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "title": "✅ Docker 构建成功",
+              "body": "KTrends Docker 镜像已成功构建并推送到 DockerHub\n\n版本: arm64-latest, amd64-latest, latest",
+              "icon": "https://www.docker.com/favicon.ico"
+            }'
+
+      - name: Send Bark notification on failure
+        if: failure()
+        run: |
+          curl -X POST "https://api.day.app/${{ secrets.BARK_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "title": "❌ Docker 构建失败",
+              "body": "KTrends Docker 镜像构建失败，请查看 GitHub Actions 日志\n\n仓库: falconchen/KTrends\n分支: master",
+              "icon": "https://www.docker.com/favicon.ico"
+            }'
+
