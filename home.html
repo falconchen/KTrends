@@ -1,17 +1,19 @@
-<html><head>
+<html>
+
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI内容助手</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="icon" type="image/jpeg" href="/static/images/icon.png" sizes="64x64">
   <link rel="apple-touch-icon" href="/static/images/icon.png" sizes="64x64">
-  
+
   <!-- Preload dns of unpkg -->
   <link rel="dns-prefetch" href="https://unpkg.com">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 
   <!-- Preload SVG icons ignore-->
-   <!--
+  <!--
   <link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/bulb-outline.svg" as="image" type="image/svg+xml">
   <link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/document-text-outline.svg" as="image" type="image/svg+xml">
   <link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/share-social-outline.svg" as="image" type="image/svg+xml">
@@ -26,16 +28,18 @@
   <link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/copy-outline.svg" as="image" type="image/svg+xml">
   <link rel="preload" href="https://unpkg.com/ionicons@5.0.0/dist/svg/checkmark-circle-outline.svg" as="image" type="image/svg+xml">
   -->
-  
+
   <style>
     body {
       background-color: #f8f9fa;
       /*padding-top: 70px;*/
     }
+
     .container {
       max-width: 800px;
       margin-top: 30px;
     }
+
     .tab-content {
       background-color: #fff;
       border: 1px solid #dee2e6;
@@ -43,13 +47,16 @@
       border-radius: 0 0 0.25rem 0.25rem;
       padding: 20px;
     }
+
     .nav-tabs .nav-link {
       display: flex;
       align-items: center;
     }
+
     .nav-tabs .nav-link ion-icon {
       margin-right: 5px;
     }
+
     .result {
       margin-top: 20px;
       padding: 15px;
@@ -58,8 +65,9 @@
       display: none;
       position: relative;
       word-wrap: break-word;
-      
+
     }
+
     .copy-button {
       position: absolute;
       top: 10px;
@@ -68,22 +76,25 @@
       background-color: #fff;
       border-radius: 4px;
       padding: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 18px;
       transition: all 0.3s ease;
     }
+
     .copy-button:hover {
       background-color: #f0f0f0;
     }
+
     .copy-button.copied {
       background-color: #28a745;
       color: white;
     }
-    .copy-button ion-icon {
-    }
+
+    .copy-button ion-icon {}
+
     .alert-container {
       position: absolute;
       top: 1rem;
@@ -93,72 +104,83 @@
       display: flex;
       justify-content: center;
       width: 100%;
-      
+
     }
+
     .alert {
       margin-bottom: 0;
       opacity: 0;
       transition: opacity 0.5s ease-in-out;
-      
+
       max-width: 500px;
       width: 100%;
 
     }
+
     .alert.show {
       opacity: 1;
     }
+
     h1.page-title {
       margin-top: 20px;
     }
+
     .alert ion-icon {
       margin-right: 5px;
     }
   </style>
   <script type="module" src="https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule="" src="https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.js"></script>
-  </head>
-  <body>
+</head>
+
+<body>
   <div class="alert-container"></div>
   <div class="container">
-    
+
     <h1 class="text-left mb-4 page-title">
       <!-- <ion-icon name="bulb-outline"></ion-icon> -->
-      <img src="/static/images/icon.png" style="width:2rem;filter: grayscale(1);">  
+      <img src="/static/images/icon.png" style="width:2rem;filter: grayscale(1);">
       AI内容助手
     </h1>
-    
+
     <ul class="nav nav-tabs" id="myTab" role="tablist">
 
 
       <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="translation-tab" data-bs-toggle="tab" data-bs-target="#translation" type="button" role="tab" aria-controls="translation" aria-selected="true">
+        <button class="nav-link active" id="translation-tab" data-bs-toggle="tab" data-bs-target="#translation"
+          type="button" role="tab" aria-controls="translation" aria-selected="true">
           <ion-icon name="globe-outline"></ion-icon> 翻译助手
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" aria-controls="summary" aria-selected="false">
+        <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button"
+          role="tab" aria-controls="summary" aria-selected="false">
           <ion-icon name="document-text-outline"></ion-icon> 内容摘要
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="keywords-tab" data-bs-toggle="tab" data-bs-target="#keywords" type="button" role="tab" aria-controls="keywords" aria-selected="false">
+        <button class="nav-link" id="keywords-tab" data-bs-toggle="tab" data-bs-target="#keywords" type="button"
+          role="tab" aria-controls="keywords" aria-selected="false">
           <ion-icon name="pricetags-outline"></ion-icon> 关键词
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button" role="tab" aria-controls="social" aria-selected="false">
+        <button class="nav-link" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button" role="tab"
+          aria-controls="social" aria-selected="false">
           <ion-icon name="share-social-outline"></ion-icon> 社交推文
         </button>
       </li>
     </ul>
-    
+
     <div class="tab-content" id="myTabContent">
       <div class="tab-pane fade" id="keywords" role="tabpanel" aria-labelledby="keywords-tab">
         <div class="mb-3">
-          <textarea class="form-control content-input" id="keywords-content" rows="6" placeholder="请输入文章内容或URL..."></textarea>
+          <textarea class="form-control content-input" id="keywords-content" rows="6"
+            placeholder="请输入文章内容或URL..."></textarea>
         </div>
         <div class="mb-3 css-selector-input" id="keywords-css-selector-group" style="display: none;">
-          <input type="text" class="form-control css-selector" id="keywords-css-selector" placeholder="请输入CSS选择器，如：div#article（非必填，留空由AI自行判断，填写则提取更准确）">
+          <input type="text" class="form-control css-selector" id="keywords-css-selector"
+            placeholder="请输入CSS选择器，如：div#article（非必填，留空由AI自行判断，填写则提取更准确）">
         </div>
         <div class="mb-3">
           <label for="keywords-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 选择语言：</label>
@@ -174,16 +196,19 @@
           <label for="keywords-count" class="form-label"><ion-icon name="list-outline"></ion-icon> 关键词数量：</label>
           <input type="number" class="form-control" id="keywords-count" min="1" max="20" value="5">
         </div>
-        <button class="btn btn-primary" onclick="processKeywords()"><ion-icon name="key-outline"></ion-icon> 提取关键词</button>
+        <button class="btn btn-primary" onclick="processKeywords()"><ion-icon name="key-outline"></ion-icon>
+          提取关键词</button>
         <div id="keywords-result" class="result"></div>
       </div>
-      
+
       <div class="tab-pane fade" id="social" role="tabpanel" aria-labelledby="social-tab">
         <div class="mb-3">
-          <textarea class="form-control content-input" id="social-content" rows="6" placeholder="请输入文章内容或URL..."></textarea>
+          <textarea class="form-control content-input" id="social-content" rows="6"
+            placeholder="请输入文章内容或URL..."></textarea>
         </div>
         <div class="mb-3 css-selector-input" id="social-css-selector-group" style="display: none;">
-          <input type="text" class="form-control css-selector" id="social-css-selector" placeholder="请输入CSS选择器，如：div#article（非必填，留空由AI自行判断，填写则提取更准确）">
+          <input type="text" class="form-control css-selector" id="social-css-selector"
+            placeholder="请输入CSS选择器，如：div#article（非必填，留空由AI自行判断，填写则提取更准确）">
         </div>
         <div class="mb-3">
           <label for="social-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 选择语言：</label>
@@ -195,15 +220,18 @@
             <option value="jp">日文</option>
           </select>
         </div>
-        <button class="btn btn-primary" onclick="processSocial()"><ion-icon name="megaphone-outline"></ion-icon> 生成社交推广文案</button>
+        <button class="btn btn-primary" onclick="processSocial()"><ion-icon name="megaphone-outline"></ion-icon>
+          生成社交推广文案</button>
         <div id="social-result" class="result"></div>
       </div>
       <div class="tab-pane fade" id="summary" role="tabpanel" aria-labelledby="summary-tab">
         <div class="mb-3">
-          <textarea class="form-control content-input" id="summary-content" rows="6" placeholder="请输入文章内容或URL..."></textarea>
+          <textarea class="form-control content-input" id="summary-content" rows="6"
+            placeholder="请输入文章内容或URL..."></textarea>
         </div>
         <div class="mb-3 css-selector-input" id="summary-css-selector-group" style="display: none;">
-          <input type="text" class="form-control css-selector" id="summary-css-selector" placeholder="请输入CSS选择器，如：div#article（非必填，留空由AI自行判断，填写则提取更准确）">
+          <input type="text" class="form-control css-selector" id="summary-css-selector"
+            placeholder="请输入CSS选择器，如：div#article（非必填，留空由AI自行判断，填写则提取更准确）">
         </div>
         <div class="mb-3">
           <label for="summary-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 选择语言：</label>
@@ -215,545 +243,328 @@
             <option value="jp">日文</option>
           </select>
         </div>
-        <button class="btn btn-primary" onclick="processSummary()"><ion-icon name="newspaper-outline"></ion-icon> 生成摘要</button>
+        <button class="btn btn-primary" onclick="processSummary()"><ion-icon name="newspaper-outline"></ion-icon>
+          生成摘要</button>
         <div id="summary-result" class="result"></div>
       </div>
-      
-      
+
+
       <!-- New Translation tab -->
-    <div class="tab-pane fade show active" id="translation" role="tabpanel" aria-labelledby="translation-tab">
-      <div class="mb-3">
-        <textarea class="form-control content-input" id="translation-content" rows="6" placeholder="请输入需要翻译的文本..."></textarea>
+      <div class="tab-pane fade show active" id="translation" role="tabpanel" aria-labelledby="translation-tab">
+        <div class="mb-3">
+          <textarea class="form-control content-input" id="translation-content" rows="6"
+            placeholder="请输入需要翻译的文本..."></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="translation-language" class="form-label"><ion-icon name="language-outline"></ion-icon>
+            目标语言：</label>
+          <select class="form-select  language-select" id="translation-language">
+            <option value="zh-CN">简体中文</option>
+            <option value="zh-HK">繁体中文（HK）</option>
+            <option value="zh-TW">繁体中文（TW）</option>
+            <option value="en">英文</option>
+            <option value="jp">日文</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="processTranslation()"><ion-icon name="globe-outline"></ion-icon>
+          翻译</button>
+        <div id="translation-result" class="result"></div>
       </div>
-      <div class="mb-3">
-        <label for="translation-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 目标语言：</label>
-        <select class="form-select  language-select" id="translation-language">
-          <option value="zh-CN">简体中文</option>
-          <option value="zh-HK">繁体中文（HK）</option>
-          <option value="zh-TW">繁体中文（TW）</option>
-          <option value="en">英文</option>
-          <option value="jp">日文</option>
-        </select>
-      </div>
-      <button class="btn btn-primary" onclick="processTranslation()"><ion-icon name="globe-outline"></ion-icon> 翻译</button>
-      <div id="translation-result" class="result"></div>
-    </div>
 
 
     </div>
   </div>
-  
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // ===== 工具函数 =====
+
     function isURL(str) {
-      const urlRegex = /^(https?:\/\/)/i;
-      return urlRegex.test(str.trim());
+      return /^(https?:\/\/)/i.test(str.trim());
     }
-  
+
+    function setCookie(name, value, days = 30) {
+      const expires = new Date(Date.now() + days * 86400000).toUTCString();
+      document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
+    }
+
+    function getCookie(name) {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    }
+
+    // ===== Alert =====
+
     let currentAlert = null;
-  
-    function showAlert(message, type = 'warning') {
-      const alertContainer = document.querySelector('.alert-container');
-      
-      if (currentAlert) {
-        currentAlert.remove();
-      }
-  
-      const alertDiv = document.createElement('div');
-      alertDiv.className = `alert alert-${type} alert-dismissible fade`;
-      alertDiv.setAttribute('role', 'alert');
-      alertDiv.innerHTML = `
-        <ion-icon name="warning-outline"></ion-icon>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      `;
-      alertContainer.appendChild(alertDiv);
-  
+
+    function showAlert(message, type = "warning") {
+      const container = document.querySelector(".alert-container");
+      if (!container) return;
+
+      if (currentAlert) currentAlert.remove();
+
+      const el = document.createElement("div");
+      el.className = `alert alert-${type} alert-dismissible fade`;
+      el.innerHTML = `
+    <ion-icon name="warning-outline"></ion-icon>
+    ${message}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  `;
+
+      container.appendChild(el);
+
+      setTimeout(() => el.classList.add("show"), 10);
       setTimeout(() => {
-        alertDiv.classList.add('show');
-      }, 10);
-  
-      setTimeout(() => {
-        alertDiv.classList.remove('show');
-        setTimeout(() => {
-          alertContainer.removeChild(alertDiv);
-          if (currentAlert === alertDiv) {
-            currentAlert = null;
+        el.classList.remove("show");
+        setTimeout(() => el.remove(), 500);
+      }, 2500);
+
+      currentAlert = el;
+    }
+
+    // ===== 统一流处理器 =====
+
+    let activeController = null;
+
+    async function streamRequest(url, formData, resultDiv, title) {
+      if (activeController) activeController.abort();
+
+      activeController = new AbortController();
+
+      resultDiv.style.display = "block";
+      resultDiv.dataset.content = "";
+
+      resultDiv.innerHTML = `
+    <div class="copy-button" onclick="copyContent('${resultDiv.id}')">
+      <ion-icon name="copy-outline"></ion-icon>
+    </div>
+    <h5>${title}</h5>
+    <p class="stream-text"></p>
+  `;
+
+      const textEl = resultDiv.querySelector(".stream-text");
+
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          body: formData,
+          signal: activeController.signal
+        });
+
+        if (!res.ok) throw new Error(res.status);
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split("\n");
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+
+            const data = line.slice(6);
+            if (data === "[DONE]") return;
+
+            try {
+              const json = JSON.parse(data);
+              if (json.content) {
+                resultDiv.dataset.content += json.content;
+                textEl.textContent = resultDiv.dataset.content;
+              }
+            } catch { }
           }
-        }, 500);
-      }, 3000);
-  
-      currentAlert = alertDiv;
+        }
+      } catch (e) {
+        if (e.name !== "AbortError") {
+          console.error(e);
+          showAlert("请求失败，请稍后重试", "danger");
+          resultDiv.style.display = "none";
+        }
+      }
     }
-  
+
+    // ===== 业务函数 =====
+
     function processSummary() {
-      const content = document.getElementById('summary-content').value.trim();
-      const language = document.getElementById('summary-language').value;
-      const cssSelector = document.getElementById('summary-css-selector').value.trim();
-      const resultDiv = document.getElementById('summary-result');
-      
-      if (!content) {
-        showAlert('请输入内容或URL');
-        return;
-      }
-  
-      resultDiv.style.display = 'block';
-      resultDiv.innerHTML = '<p class="text-center"><ion-icon name="hourglass-outline"></ion-icon> AI正在生成摘要，请稍候...</p>';
-        
+      const content = document.getElementById("summary-content").value.trim();
+      const lang = document.getElementById("summary-language").value;
+      const selector = document.getElementById("summary-css-selector").value.trim();
+      const resultDiv = document.getElementById("summary-result");
 
-      
-      const formData = new FormData();
-      formData.append('input', content);
-      formData.append('lang', language);
-      if (isURL(content) && cssSelector) {
-        formData.append('css_selector', cssSelector);
-      }
-    
-      // 使用流式API
-      fetch('/api/stream/get_summary', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('HTTP error ' + response.status);
-        }
+      if (!content) return showAlert("请输入内容或URL");
 
-        // 初始化结果显示
-        resultDiv.innerHTML = `
-          <div class="copy-button" onclick="copyContent('summary-result')">
-            <ion-icon name="copy-outline"></ion-icon>
-          </div>
-          <h5><ion-icon name="document-text-outline"></ion-icon> 文章摘要</h5><p id="summary-content-text"></p>
-        `;
-        resultDiv.dataset.content = "";
+      const fd = new FormData();
+      fd.append("input", content);
+      fd.append("lang", lang);
+      if (isURL(content) && selector) fd.append("css_selector", selector);
 
-        const contentElement = document.getElementById('summary-content-text');
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+      setCookie("summary-language", lang);
 
-        function readStream() {
-          reader.read().then(({ done, value }) => {
-            if (done) {
-              return;
-            }
-
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-
-            lines.forEach(line => {
-              if (line.startsWith('data: ')) {
-                const data = line.substring(6);
-                if (data === '[DONE]') {
-                  return;
-                }
-                try {
-                  const json = JSON.parse(data);
-                  if (json.content) {
-                    resultDiv.dataset.content += json.content;
-                    contentElement.innerHTML = resultDiv.dataset.content.replace(/\n/g, '<br>');
-                  }
-                } catch (e) {
-                  console.error('Error parsing JSON:', e);
-                }
-              }
-            });
-
-            readStream();
-          });
-        }
-
-        readStream();
-      })
-      .catch(detail => {
-        console.error('Error:', detail);
-        showAlert('生成文章摘要失败，请稍后再试', 'danger');
-        resultDiv.style.display = 'none';
-      });
-      
-      
-      
-      setCookie('summary-language', language, 30);
+      streamRequest(
+        "/api/stream/get_summary",
+        fd,
+        resultDiv,
+        '<ion-icon name="document-text-outline"></ion-icon> 文章摘要'
+      );
     }
-  
+
     function processSocial() {
-      const content = document.getElementById('social-content').value.trim();
-      const language = document.getElementById('social-language').value;
-      const cssSelector = document.getElementById('social-css-selector').value.trim();
-      const resultDiv = document.getElementById('social-result');
-      
-      if (!content) {
-        showAlert('请输入内容或URL');
-        return;
-      }
-    
-      resultDiv.style.display = 'block';
-      resultDiv.innerHTML = '<p class="text-center"><ion-icon name="hourglass-outline"></ion-icon> AI正在生成社交推广文案，请稍候...</p>';
-    
-      const formData = new FormData();
-      formData.append('input', content);
-      formData.append('lang', language);
-      if (isURL(content) && cssSelector) {
-        formData.append('css_selector', cssSelector);
-      }
-    
-      // 使用流式API
-      fetch('/api/stream/get_social', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('HTTP error ' + response.status);
-        }
+      const content = document.getElementById("social-content").value.trim();
+      const lang = document.getElementById("social-language").value;
+      const selector = document.getElementById("social-css-selector").value.trim();
+      const resultDiv = document.getElementById("social-result");
 
-        // 初始化结果显示
-        resultDiv.innerHTML = `
-          <div class="copy-button" onclick="copyContent('social-result')">
-            <ion-icon name="copy-outline"></ion-icon>
-          </div>
-          <h5><ion-icon name="megaphone-outline"></ion-icon> 社交推广文案</h5>
-          <p id="social-content-text"></p>
-        `;
-        resultDiv.dataset.content = "";
+      if (!content) return showAlert("请输入内容或URL");
 
-        const contentElement = document.getElementById('social-content-text');
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+      const fd = new FormData();
+      fd.append("input", content);
+      fd.append("lang", lang);
+      if (isURL(content) && selector) fd.append("css_selector", selector);
 
-        function readStream() {
-          reader.read().then(({ done, value }) => {
-            if (done) {
-              return;
-            }
+      setCookie("social-language", lang);
 
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-
-            lines.forEach(line => {
-              if (line.startsWith('data: ')) {
-                const data = line.substring(6);
-                if (data === '[DONE]') {
-                  return;
-                }
-                try {
-                  const json = JSON.parse(data);
-                  if (json.content) {
-                    resultDiv.dataset.content += json.content;
-                    contentElement.innerHTML = resultDiv.dataset.content.replace(/\n/g, '<br>');
-                  }
-                } catch (e) {
-                  console.error('Error parsing JSON:', e);
-                }
-              }
-            });
-
-            readStream();
-          });
-        }
-
-        readStream();
-      })
-      .catch(detail => {
-        console.error('Error:', detail);
-        showAlert('生成社交推广文案失败，请稍后再试', 'danger');
-        resultDiv.style.display = 'none';
-      });
-      
-      setCookie('social-language', language, 30);
+      streamRequest(
+        "/api/stream/get_social",
+        fd,
+        resultDiv,
+        '<ion-icon name="megaphone-outline"></ion-icon> 社交推广文案'
+      );
     }
-  
+
     function processKeywords() {
-      const content = document.getElementById('keywords-content').value.trim();
-      const language = document.getElementById('keywords-language').value;
-      const count = document.getElementById('keywords-count').value;
-      const cssSelector = document.getElementById('keywords-css-selector').value.trim();
-      const resultDiv = document.getElementById('keywords-result');
-      
-      if (!content) {
-        showAlert('请输入内容或URL');
-        return;
-      }
-  
-      resultDiv.style.display = 'block';
-      resultDiv.innerHTML = '<p class="text-center"><ion-icon name="hourglass-outline"></ion-icon> AI正在提取关键词，请稍候...</p>';
-  
-      const formData = new FormData();
-      formData.append('input', content);
-      formData.append('lang', language);
-      formData.append('num_keywords', count);
-      if (isURL(content) && cssSelector) {
-        formData.append('css_selector', cssSelector);
-      }
-  
-      // 使用流式API
-      fetch('/api/stream/get_keywords', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('HTTP error ' + response.status);
-        }
+      const content = document.getElementById("keywords-content").value.trim();
+      const lang = document.getElementById("keywords-language").value;
+      const count = document.getElementById("keywords-count").value;
+      const selector = document.getElementById("keywords-css-selector").value.trim();
+      const resultDiv = document.getElementById("keywords-result");
 
-        // 初始化结果显示
-        resultDiv.innerHTML = `
-          <div class="copy-button" onclick="copyContent('keywords-result')">
-            <ion-icon name="copy-outline"></ion-icon>
-          </div>
-          <h5><ion-icon name="pricetags-outline"></ion-icon> 关键词</h5>
-          <p id="keywords-content-text"></p>
-        `;
-        resultDiv.dataset.content = "";
+      if (!content) return showAlert("请输入内容或URL");
 
-        const contentElement = document.getElementById('keywords-content-text');
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+      const fd = new FormData();
+      fd.append("input", content);
+      fd.append("lang", lang);
+      fd.append("num_keywords", count);
+      if (isURL(content) && selector) fd.append("css_selector", selector);
 
-        function readStream() {
-          reader.read().then(({ done, value }) => {
-            if (done) {
-              return;
-            }
+      setCookie("keywords-language", lang);
+      setCookie("keywords-count", count);
 
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-
-            lines.forEach(line => {
-              if (line.startsWith('data: ')) {
-                const data = line.substring(6);
-                if (data === '[DONE]') {
-                  return;
-                }
-                try {
-                  const json = JSON.parse(data);
-                  if (json.content) {
-                    resultDiv.dataset.content += json.content;
-                    contentElement.innerHTML = resultDiv.dataset.content.replace(/\n/g, '<br>');
-                  }
-                } catch (e) {
-                  console.error('Error parsing JSON:', e);
-                }
-              }
-            });
-
-            readStream();
-          });
-        }
-
-        readStream();
-      })
-      .catch(detail => {
-        console.error('Error:', detail);
-        showAlert('提取关键词失败，请稍后再试', 'danger');
-        resultDiv.style.display = 'none';
-      });
-      
-      setCookie('keywords-language', language, 30);
-      setCookie('keywords-count', count, 30);
+      streamRequest(
+        "/api/stream/get_keywords",
+        fd,
+        resultDiv,
+        '<ion-icon name="pricetags-outline"></ion-icon> 关键词'
+      );
     }
 
     function processTranslation() {
-      const content = document.getElementById('translation-content').value.trim();
-      const language = document.getElementById('translation-language').value;
-      const resultDiv = document.getElementById('translation-result');
-      
-      if (!content) {
-        showAlert('请输入需要翻译的文本');
-        return;
-      }
-  
-      resultDiv.style.display = 'block';
-      resultDiv.innerHTML = '<p class="text-center"><ion-icon name="hourglass-outline"></ion-icon> AI正在翻译，请稍候...</p>';
-  
-      const formData = new FormData();
-      formData.append('input', content);
-      formData.append('lang', language);
-  
-      // 使用流式API
-      fetch('/api/stream/get_translation', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('HTTP error ' + response.status);
-        }
+      const content = document.getElementById("translation-content").value.trim();
+      const lang = document.getElementById("translation-language").value;
+      const resultDiv = document.getElementById("translation-result");
 
-        // 初始化结果显示
-        resultDiv.innerHTML = `
-          <div class="copy-button" onclick="copyContent('translation-result')">
-            <ion-icon name="copy-outline"></ion-icon>
-          </div>
-          <h5><ion-icon name="globe-outline"></ion-icon> 翻译结果</h5>
-          <p id="translation-content-text"></p>
-        `;
-        resultDiv.dataset.content = "";
+      if (!content) return showAlert("请输入需要翻译的文本");
 
-        const contentElement = document.getElementById('translation-content-text');
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+      const fd = new FormData();
+      fd.append("input", content);
+      fd.append("lang", lang);
 
-        function readStream() {
-          reader.read().then(({ done, value }) => {
-            if (done) {
-              return;
-            }
+      setCookie("translation-language", lang);
 
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-
-            lines.forEach(line => {
-              if (line.startsWith('data: ')) {
-                const data = line.substring(6);
-                if (data === '[DONE]') {
-                  return;
-                }
-                try {
-                  const json = JSON.parse(data);
-                  if (json.content) {
-                    resultDiv.dataset.content += json.content;
-                    contentElement.innerHTML = resultDiv.dataset.content.replace(/\n/g, '<br>');
-                  }
-                } catch (e) {
-                  console.error('Error parsing JSON:', e);
-                }
-              }
-            });
-
-            readStream();
-          });
-        }
-
-        readStream();
-      })
-      .catch(detail => {
-        console.error('Error:', detail);
-        showAlert('翻译失败，请稍后再试', 'danger');
-        resultDiv.style.display = 'none';
-      });
-      
-      setCookie('translation-language', language, 30);
+      streamRequest(
+        "/api/stream/get_translation",
+        fd,
+        resultDiv,
+        '<ion-icon name="globe-outline"></ion-icon> 翻译结果'
+      );
     }
-  
-    function showCssSelectorInput() {
-      const contentInputs = document.querySelectorAll('.content-input');
-      const cssSelectorGroups = document.querySelectorAll('.css-selector-input');
-      
-      const isUrl = isURL(contentInputs[0].value.trim());
-      
-      cssSelectorGroups.forEach(group => {
-        group.style.display = isUrl ? 'block' : 'none';
-      });
-    }
-  
-    function copyContent(elementId) {
-      const element = document.getElementById(elementId);
-      const text = element.dataset.content;
+
+    // ===== 复制 =====
+
+    function copyContent(resultId) {
+      const el = document.getElementById(resultId);
+      const text = el.dataset.content || "";
+
       navigator.clipboard.writeText(text).then(() => {
-        const copyButton = element.querySelector('.copy-button');
-        const originalHTML = copyButton.innerHTML;
+        const btn = el.querySelector(".copy-button");
+        const old = btn.innerHTML;
 
-        // 平滑切换到复制成功状态
-        copyButton.classList.add('copied');
-        copyButton.innerHTML = `
-          <ion-icon name="checkmark-circle-outline"></ion-icon>
-        `;
+        btn.classList.add("copied");
+        btn.innerHTML = `<ion-icon name="checkmark-circle-outline"></ion-icon>`;
 
         setTimeout(() => {
-          // 平滑切换回原始状态
-          copyButton.classList.remove('copied');
-          copyButton.innerHTML = originalHTML;
-        }, 2000);
-      }).catch(err => {
-        console.error('无法复制文本: ', err);
-        showAlert('复制失败，请手动复制', 'danger');
+          btn.classList.remove("copied");
+          btn.innerHTML = old;
+        }, 1500);
       });
     }
-  
-    function setCookie(name, value, days) {
-      let expires = "";
-      if (days) {
-        let date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = "; expires=" + date.toUTCString();
-      }
-      document.cookie = name + "=" + (value || "")  + expires + "; path=/";
-    }
-  
-    function getCookie(name) {
-      let nameEQ = name + "=";
-      let ca = document.cookie.split(';');
-      for(let i=0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0)==' ') c = c.substring(1,c.length);
-        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
-      }
-      return null;
-    }
-  
-    function loadSavedSettings() {
-      let summaryLanguage = getCookie('summary-language');
-      if (summaryLanguage) {
-        document.getElementById('summary-language').value = summaryLanguage;
-      }
-  
-      let socialLanguage = getCookie('social-language');
-      if (socialLanguage) {
-        document.getElementById('social-language').value = socialLanguage;
-      }
-  
-      let keywordsLanguage = getCookie('keywords-language');
-      if (keywordsLanguage) {
-        document.getElementById('keywords-language').value = keywordsLanguage;
-      }
-  
-      let keywordsCount = getCookie('keywords-count');
-      if (keywordsCount) {
-        document.getElementById('keywords-count').value = keywordsCount;
-      }
-    }
-  
-    document.addEventListener('DOMContentLoaded', () => {
-      loadSavedSettings();
-  
-      // Sync content across textareas
-      const contentInputs = document.querySelectorAll('.content-input');
+
+    // ===== UI 同步 =====
+
+    function syncInputs() {
+      const contentInputs = document.querySelectorAll(".content-input");
+      const selectorInputs = document.querySelectorAll(".css-selector");
+      const languageSelects = document.querySelectorAll(".language-select");
+
       contentInputs.forEach(input => {
-        input.addEventListener('input', (e) => {
-          contentInputs.forEach(otherInput => {
-            if (otherInput !== e.target) {
-              otherInput.value = e.target.value;
-            }
+        input.addEventListener("input", e => {
+          contentInputs.forEach(i => {
+            if (i !== e.target) i.value = e.target.value;
           });
-          showCssSelectorInput();
-        });
-      });
-  
-      // Sync CSS selectors
-      const cssSelectorInputs = document.querySelectorAll('.css-selector');
-      cssSelectorInputs.forEach(input => {
-        input.addEventListener('input', (e) => {
-          cssSelectorInputs.forEach(otherInput => {
-            if (otherInput !== e.target) {
-              otherInput.value = e.target.value;
-            }
+
+          const show = isURL(e.target.value);
+          document.querySelectorAll(".css-selector-input").forEach(g => {
+            g.style.display = show ? "block" : "none";
           });
         });
       });
-  
-      // Sync language selection
-      const languageSelects = document.querySelectorAll('.language-select');
+
+      selectorInputs.forEach(input => {
+        input.addEventListener("input", e => {
+          selectorInputs.forEach(i => {
+            if (i !== e.target) i.value = e.target.value;
+          });
+        });
+      });
+
       languageSelects.forEach(select => {
-        select.addEventListener('change', (e) => {
-          languageSelects.forEach(otherSelect => {
-            if (otherSelect !== e.target) {
-              otherSelect.value = e.target.value;
-            }
+        select.addEventListener("change", e => {
+          languageSelects.forEach(s => {
+            if (s !== e.target) s.value = e.target.value;
           });
         });
       });
+    }
+
+    // ===== 初始化 =====
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const saved = [
+        "summary-language",
+        "social-language",
+        "keywords-language",
+        "translation-language"
+      ];
+
+      saved.forEach(id => {
+        const v = getCookie(id);
+        if (v && document.getElementById(id)) {
+          document.getElementById(id).value = v;
+        }
+      });
+
+      const count = getCookie("keywords-count");
+      if (count) document.getElementById("keywords-count").value = count;
+
+      syncInputs();
     });
   </script>
-  </body>
-  </html>
+</body>
+
+</html>
