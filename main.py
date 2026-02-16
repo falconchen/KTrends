@@ -9,8 +9,9 @@ import openai
 from openai import OpenAI
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse
 import aiofiles
+import json
 
 import os
 
@@ -130,7 +131,7 @@ def process_input(input,css_selector=None):
 
 
 def get_openai_response(prompt):
-        
+
         openai_client = OpenAI(api_key=openai_api_key, base_url=openai_base_url)
         response = openai_client.chat.completions.create(
             model="deepseek-chat",
@@ -142,10 +143,23 @@ def get_openai_response(prompt):
         )
 
         print(prompt,response)
-        
+
         return response.choices[0].message.content.strip()
 
-           
+
+def get_openai_response_stream(prompt):
+        openai_client = OpenAI(api_key=openai_api_key, base_url=openai_base_url)
+        response = openai_client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[
+                {"role": "system", "content": "You are a helpful content assistant"},
+                {"role": "user", "content": prompt},
+            ],
+            stream=True
+        )
+
+        print(prompt)
+        return response
 
 
 # 定义 POST 接口，使用 Form 接受表单数据
@@ -271,25 +285,144 @@ async def extract_content(input: str = Form(..., description="The html codes."))
 async def get_translation(input: str = Form(..., description="The text from which to get translate"),
                        lang: str = Form(..., description="The target language of the text ai translate to.")
                        ):
-                       
-    
+
+
     try:
-        
+
         text = input.strip()
 
-        # Prepare the prompt using the template and provided parameters        
-        prompt = translate_prompt_template.format(            
+        # Prepare the prompt using the template and provided parameters
+        prompt = translate_prompt_template.format(
             text=text,  # Strip any leading/trailing whitespace
             lang=lang
-        )   
-        
+        )
+
         result = get_openai_response(prompt)
         print(result)
 
         return {
             "result": result
-        } 
+        }
 
-    except Exception as e:        
+    except Exception as e:
+        print(f"Internal error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+# 流式输出API
+@app.post("/api/stream/get_keywords")
+async def stream_get_keywords(input: str = Form(..., description="The text or url from which to extract keywords."),
+                       lang: str = Form(..., description="The language of the text ai responds."),
+                       num_keywords: int = Form(5, description="The number of keywords to extract"),
+                       css_selector: str = Form(None, description="CSS selector to extract content from HTML, optional")
+                       ):
+
+    try:
+        text = process_input(input,css_selector)
+        prompt = keywords_prompt_template.format(
+            num_keywords=num_keywords,
+            text=text,
+            lang=lang
+        )
+
+        def generate():
+            response = get_openai_response_stream(prompt)
+            for chunk in response:
+                if chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    yield f"data: {json.dumps({'content': content})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(generate(), media_type="text/event-stream")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.post("/api/stream/get_social")
+async def stream_get_social(input: str = Form(..., description="The text from which to get content for social media post."),
+                       lang: str = Form(..., description="The language of the text ai responds."),
+                       css_selector: str = Form(None, description="CSS selector to extract content from HTML, optional")
+                       ):
+
+    try:
+        text = process_input(input,css_selector)
+        prompt = socail_prompt_template.format(
+            text=text,
+            lang=lang
+        )
+
+        def generate():
+            response = get_openai_response_stream(prompt)
+            full_text = ""
+            for chunk in response:
+                if chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    full_text += content
+                    yield f"data: {json.dumps({'content': content})}\n\n"
+
+            # 如果是URL，在末尾添加链接
+            if input.startswith("http://") or input.startswith("https://"):
+                url_append = f"\n\n{input}"
+                yield f"data: {json.dumps({'content': url_append})}\n\n"
+
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(generate(), media_type="text/event-stream")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.post("/api/stream/get_summary")
+async def stream_get_summary(input: str = Form(..., description="The text or urlfrom which to get_summary"),
+                       lang: str = Form(..., description="The language of the text ai responds."),
+                       css_selector: str = Form(None, description="CSS selector to extract content from HTML, optional")
+                       ):
+
+    try:
+        text = process_input(input,css_selector)
+        prompt = summary_prompt_template.format(
+            text=text,
+            lang=lang
+        )
+
+        def generate():
+            response = get_openai_response_stream(prompt)
+            for chunk in response:
+                if chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    yield f"data: {json.dumps({'content': content})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(generate(), media_type="text/event-stream")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.post("/api/stream/get_translation")
+async def stream_get_translation(input: str = Form(..., description="The text from which to get translate"),
+                       lang: str = Form(..., description="The target language of the text ai translate to.")
+                       ):
+
+    try:
+        text = input.strip()
+        prompt = translate_prompt_template.format(
+            text=text,
+            lang=lang
+        )
+
+        def generate():
+            response = get_openai_response_stream(prompt)
+            for chunk in response:
+                if chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    yield f"data: {json.dumps({'content': content})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(generate(), media_type="text/event-stream")
+
+    except Exception as e:
         print(f"Internal error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")

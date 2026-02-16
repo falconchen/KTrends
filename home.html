@@ -304,7 +304,8 @@
         formData.append('css_selector', cssSelector);
       }
     
-      fetch('/api/get_summary', {
+      // 使用流式API
+      fetch('/api/stream/get_summary', {
         method: 'POST',
         body: formData
       })
@@ -312,20 +313,53 @@
         if (!response.ok) {
           throw new Error('HTTP error ' + response.status);
         }
-        return response.json();
-      })
-      .then(data => {
-        const summary = data.result.replace(/\n/g, '<br>');
+
+        // 初始化结果显示
         resultDiv.innerHTML = `
           <div class="copy-button" onclick="copyContent('summary-result')">
             <ion-icon name="copy-outline"></ion-icon>
             复制
           </div>
-          <h2><ion-icon name="document-text-outline"></ion-icon> 文章摘要</h2><p>${summary}</p>
-          
+          <h2><ion-icon name="document-text-outline"></ion-icon> 文章摘要</h2><p id="summary-content-text"></p>
         `;
-        // 使用未修改的原始内容作为 data-content，确保复制时文本保持原样
-        resultDiv.dataset.content = data.result;
+        resultDiv.dataset.content = "";
+
+        const contentElement = document.getElementById('summary-content-text');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        function readStream() {
+          reader.read().then(({ done, value }) => {
+            if (done) {
+              return;
+            }
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            lines.forEach(line => {
+              if (line.startsWith('data: ')) {
+                const data = line.substring(6);
+                if (data === '[DONE]') {
+                  return;
+                }
+                try {
+                  const json = JSON.parse(data);
+                  if (json.content) {
+                    resultDiv.dataset.content += json.content;
+                    contentElement.innerHTML = resultDiv.dataset.content.replace(/\n/g, '<br>');
+                  }
+                } catch (e) {
+                  console.error('Error parsing JSON:', e);
+                }
+              }
+            });
+
+            readStream();
+          });
+        }
+
+        readStream();
       })
       .catch(detail => {
         console.error('Error:', detail);
@@ -359,7 +393,8 @@
         formData.append('css_selector', cssSelector);
       }
     
-      fetch('/api/get_social', {
+      // 使用流式API
+      fetch('/api/stream/get_social', {
         method: 'POST',
         body: formData
       })
@@ -367,20 +402,54 @@
         if (!response.ok) {
           throw new Error('HTTP error ' + response.status);
         }
-        return response.json();
-      })
-      .then(data => {
-        const socialPost = data.result.replace(/\n/g, '<br>');
+
+        // 初始化结果显示
         resultDiv.innerHTML = `
           <div class="copy-button" onclick="copyContent('social-result')">
             <ion-icon name="copy-outline"></ion-icon>
             复制
           </div>
           <h2><ion-icon name="megaphone-outline"></ion-icon> 社交推广文案</h2>
-          <p>${socialPost}</p>
+          <p id="social-content-text"></p>
         `;
-        // 使用未修改的原始内容作为 data-content，确保复制时文本保持原样
-        resultDiv.dataset.content = data.result;
+        resultDiv.dataset.content = "";
+
+        const contentElement = document.getElementById('social-content-text');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        function readStream() {
+          reader.read().then(({ done, value }) => {
+            if (done) {
+              return;
+            }
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            lines.forEach(line => {
+              if (line.startsWith('data: ')) {
+                const data = line.substring(6);
+                if (data === '[DONE]') {
+                  return;
+                }
+                try {
+                  const json = JSON.parse(data);
+                  if (json.content) {
+                    resultDiv.dataset.content += json.content;
+                    contentElement.innerHTML = resultDiv.dataset.content.replace(/\n/g, '<br>');
+                  }
+                } catch (e) {
+                  console.error('Error parsing JSON:', e);
+                }
+              }
+            });
+
+            readStream();
+          });
+        }
+
+        readStream();
       })
       .catch(detail => {
         console.error('Error:', detail);
@@ -414,7 +483,8 @@
         formData.append('css_selector', cssSelector);
       }
   
-      fetch('/api/get_keywords', {
+      // 使用流式API
+      fetch('/api/stream/get_keywords', {
         method: 'POST',
         body: formData
       })
@@ -422,20 +492,54 @@
         if (!response.ok) {
           throw new Error('HTTP error ' + response.status);
         }
-        return response.json();
-      })
-      .then(data => {
-        const keywords = data.result.replace(/\n/g, '<br>');;
-        
+
+        // 初始化结果显示
         resultDiv.innerHTML = `
           <div class="copy-button" onclick="copyContent('keywords-result')">
             <ion-icon name="copy-outline"></ion-icon>
             复制
           </div>
           <h2><ion-icon name="pricetags-outline"></ion-icon> 关键词</h2>
-          <p>${keywords}</p>
+          <p id="keywords-content-text"></p>
         `;
-        resultDiv.dataset.content = data.result;
+        resultDiv.dataset.content = "";
+
+        const contentElement = document.getElementById('keywords-content-text');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        function readStream() {
+          reader.read().then(({ done, value }) => {
+            if (done) {
+              return;
+            }
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            lines.forEach(line => {
+              if (line.startsWith('data: ')) {
+                const data = line.substring(6);
+                if (data === '[DONE]') {
+                  return;
+                }
+                try {
+                  const json = JSON.parse(data);
+                  if (json.content) {
+                    resultDiv.dataset.content += json.content;
+                    contentElement.innerHTML = resultDiv.dataset.content.replace(/\n/g, '<br>');
+                  }
+                } catch (e) {
+                  console.error('Error parsing JSON:', e);
+                }
+              }
+            });
+
+            readStream();
+          });
+        }
+
+        readStream();
       })
       .catch(detail => {
         console.error('Error:', detail);
@@ -464,7 +568,8 @@
       formData.append('input', content);
       formData.append('lang', language);
   
-      fetch('/api/get_translation', {
+      // 使用流式API
+      fetch('/api/stream/get_translation', {
         method: 'POST',
         body: formData
       })
@@ -472,19 +577,54 @@
         if (!response.ok) {
           throw new Error('HTTP error ' + response.status);
         }
-        return response.json();
-      })
-      .then(data => {
-        const translation = data.result.replace(/\n/g, '<br>');
+
+        // 初始化结果显示
         resultDiv.innerHTML = `
           <div class="copy-button" onclick="copyContent('translation-result')">
             <ion-icon name="copy-outline"></ion-icon>
             复制
           </div>
           <h2><ion-icon name="globe-outline"></ion-icon> 翻译结果</h2>
-          <p>${translation}</p>
+          <p id="translation-content-text"></p>
         `;
-        resultDiv.dataset.content = data.result;
+        resultDiv.dataset.content = "";
+
+        const contentElement = document.getElementById('translation-content-text');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        function readStream() {
+          reader.read().then(({ done, value }) => {
+            if (done) {
+              return;
+            }
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            lines.forEach(line => {
+              if (line.startsWith('data: ')) {
+                const data = line.substring(6);
+                if (data === '[DONE]') {
+                  return;
+                }
+                try {
+                  const json = JSON.parse(data);
+                  if (json.content) {
+                    resultDiv.dataset.content += json.content;
+                    contentElement.innerHTML = resultDiv.dataset.content.replace(/\n/g, '<br>');
+                  }
+                } catch (e) {
+                  console.error('Error parsing JSON:', e);
+                }
+              }
+            });
+
+            readStream();
+          });
+        }
+
+        readStream();
       })
       .catch(detail => {
         console.error('Error:', detail);
