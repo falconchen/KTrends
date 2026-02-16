@@ -124,9 +124,19 @@
     
     <ul class="nav nav-tabs" id="myTab" role="tablist">
 
-      
+
       <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="keywords-tab" data-bs-toggle="tab" data-bs-target="#keywords" type="button" role="tab" aria-controls="keywords" aria-selected="false">
+        <button class="nav-link active" id="translation-tab" data-bs-toggle="tab" data-bs-target="#translation" type="button" role="tab" aria-controls="translation" aria-selected="true">
+          <ion-icon name="globe-outline"></ion-icon> 翻译助手
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" aria-controls="summary" aria-selected="false">
+          <ion-icon name="document-text-outline"></ion-icon> 内容摘要
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="keywords-tab" data-bs-toggle="tab" data-bs-target="#keywords" type="button" role="tab" aria-controls="keywords" aria-selected="false">
           <ion-icon name="pricetags-outline"></ion-icon> 关键词
         </button>
       </li>
@@ -135,20 +145,10 @@
           <ion-icon name="share-social-outline"></ion-icon> 社交推文
         </button>
       </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" aria-controls="summary" aria-selected="true">
-          <ion-icon name="document-text-outline"></ion-icon> 内容摘要
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="translation-tab" data-bs-toggle="tab" data-bs-target="#translation" type="button" role="tab" aria-controls="translation" aria-selected="false">
-          <ion-icon name="globe-outline"></ion-icon> 翻译助手
-        </button>
-      </li>
     </ul>
     
     <div class="tab-content" id="myTabContent">
-      <div class="tab-pane fade  show active" id="keywords" role="tabpanel" aria-labelledby="keywords-tab">
+      <div class="tab-pane fade" id="keywords" role="tabpanel" aria-labelledby="keywords-tab">
         <div class="mb-3">
           <textarea class="form-control content-input" id="keywords-content" rows="10" placeholder="请输入文章内容或URL..."></textarea>
         </div>
@@ -216,7 +216,7 @@
       
       
       <!-- New Translation tab -->
-    <div class="tab-pane fade" id="translation" role="tabpanel" aria-labelledby="translation-tab">
+    <div class="tab-pane fade show active" id="translation" role="tabpanel" aria-labelledby="translation-tab">
       <div class="mb-3">
         <textarea class="form-control content-input" id="translation-content" rows="10" placeholder="请输入需要翻译的文本..."></textarea>
       </div>
