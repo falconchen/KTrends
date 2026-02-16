@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(timeout 5 curl:*)"
+      "Bash(timeout 5 curl:*)",
+      "Bash(docker buildx:*)"
     ]
   }
 }

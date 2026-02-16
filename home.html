@@ -150,7 +150,7 @@
     <div class="tab-content" id="myTabContent">
       <div class="tab-pane fade" id="keywords" role="tabpanel" aria-labelledby="keywords-tab">
         <div class="mb-3">
-          <textarea class="form-control content-input" id="keywords-content" rows="10" placeholder="请输入文章内容或URL..."></textarea>
+          <textarea class="form-control content-input" id="keywords-content" rows="6" placeholder="请输入文章内容或URL..."></textarea>
         </div>
         <div class="mb-3 css-selector-input" id="keywords-css-selector-group" style="display: none;">
           <input type="text" class="form-control css-selector" id="keywords-css-selector" placeholder="请输入CSS选择器，如：div#article（非必填，留空由AI自行判断，填写则提取更准确）">
@@ -175,7 +175,7 @@
       
       <div class="tab-pane fade" id="social" role="tabpanel" aria-labelledby="social-tab">
         <div class="mb-3">
-          <textarea class="form-control content-input" id="social-content" rows="10" placeholder="请输入文章内容或URL..."></textarea>
+          <textarea class="form-control content-input" id="social-content" rows="6" placeholder="请输入文章内容或URL..."></textarea>
         </div>
         <div class="mb-3 css-selector-input" id="social-css-selector-group" style="display: none;">
           <input type="text" class="form-control css-selector" id="social-css-selector" placeholder="请输入CSS选择器，如：div#article（非必填，留空由AI自行判断，填写则提取更准确）">
@@ -195,7 +195,7 @@
       </div>
       <div class="tab-pane fade" id="summary" role="tabpanel" aria-labelledby="summary-tab">
         <div class="mb-3">
-          <textarea class="form-control content-input" id="summary-content" rows="10" placeholder="请输入文章内容或URL..."></textarea>
+          <textarea class="form-control content-input" id="summary-content" rows="6" placeholder="请输入文章内容或URL..."></textarea>
         </div>
         <div class="mb-3 css-selector-input" id="summary-css-selector-group" style="display: none;">
           <input type="text" class="form-control css-selector" id="summary-css-selector" placeholder="请输入CSS选择器，如：div#article（非必填，留空由AI自行判断，填写则提取更准确）">
@@ -218,7 +218,7 @@
       <!-- New Translation tab -->
     <div class="tab-pane fade show active" id="translation" role="tabpanel" aria-labelledby="translation-tab">
       <div class="mb-3">
-        <textarea class="form-control content-input" id="translation-content" rows="10" placeholder="请输入需要翻译的文本..."></textarea>
+        <textarea class="form-control content-input" id="translation-content" rows="6" placeholder="请输入需要翻译的文本..."></textarea>
       </div>
       <div class="mb-3">
         <label for="translation-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 目标语言：</label>
@@ -320,7 +320,7 @@
             <ion-icon name="copy-outline"></ion-icon>
             复制
           </div>
-          <h2><ion-icon name="document-text-outline"></ion-icon> 文章摘要</h2><p id="summary-content-text"></p>
+          <h5><ion-icon name="document-text-outline"></ion-icon> 文章摘要</h5><p id="summary-content-text"></p>
         `;
         resultDiv.dataset.content = "";
 
@@ -409,7 +409,7 @@
             <ion-icon name="copy-outline"></ion-icon>
             复制
           </div>
-          <h2><ion-icon name="megaphone-outline"></ion-icon> 社交推广文案</h2>
+          <h5><ion-icon name="megaphone-outline"></ion-icon> 社交推广文案</h5>
           <p id="social-content-text"></p>
         `;
         resultDiv.dataset.content = "";
@@ -499,7 +499,7 @@
             <ion-icon name="copy-outline"></ion-icon>
             复制
           </div>
-          <h2><ion-icon name="pricetags-outline"></ion-icon> 关键词</h2>
+          <h5><ion-icon name="pricetags-outline"></ion-icon> 关键词</h5>
           <p id="keywords-content-text"></p>
         `;
         resultDiv.dataset.content = "";
@@ -584,7 +584,7 @@
             <ion-icon name="copy-outline"></ion-icon>
             复制
           </div>
-          <h2><ion-icon name="globe-outline"></ion-icon> 翻译结果</h2>
+          <h5><ion-icon name="globe-outline"></ion-icon> 翻译结果</h5>
           <p id="translation-content-text"></p>
         `;
         resultDiv.dataset.content = "";
