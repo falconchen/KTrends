@@ -61,6 +61,49 @@ data: {"content":" API 的问候"}
 data: [DONE]
 ```
 
+### 内容摘要接口
+
+`POST /api/v1/summary`，支持文本或 URL：
+
+```bash
+curl -X POST 'https://hicms.eu.org/api/v1/summary' \
+  -H 'Authorization: Bearer <YOUR_PERSONAL_ACCESS_TOKEN>' \
+  -H 'Content-Type: application/json' \
+  -d '{"input":"https://example.com/article","lang":"zh-CN","css_selector":"article","stream":false}'
+```
+
+### 社交文案接口
+
+`POST /api/v1/social`，当 `input` 是 URL 时，生成结果末尾会附上来源链接：
+
+```bash
+curl -X POST 'https://hicms.eu.org/api/v1/social' \
+  -H 'Authorization: Bearer <YOUR_PERSONAL_ACCESS_TOKEN>' \
+  -H 'Content-Type: application/json' \
+  -d '{"input":"介绍我们的新产品","lang":"zh-CN","stream":false}'
+```
+
+### 关键词接口
+
+`POST /api/v1/keywords`：
+
+```bash
+curl -X POST 'https://hicms.eu.org/api/v1/keywords' \
+  -H 'Authorization: Bearer <YOUR_PERSONAL_ACCESS_TOKEN>' \
+  -H 'Content-Type: application/json' \
+  -d '{"input":"人工智能正在改变内容生产方式","lang":"zh-CN","num_keywords":5,"stream":false}'
+```
+
+摘要、社交文案和关键词接口的通用参数：
+
+- `input`：必填，文本或以 `http://`、`https://` 开头的 URL。
+- `lang`：必填，输出语系。
+- `css_selector`：可选；输入为 URL 时，用于提取指定网页元素。
+- `stream`：可选，默认为 `false`；设为 `true` 时返回 SSE 流。
+- `num_keywords`：仅关键词接口使用，默认为 `5`，范围为 `1`–`20`。
+
+所有非流式接口均返回 `{"result":"..."}`；流式接口的数据格式与翻译接口相同。
+
 Token 缺失或无效时接口返回 `401`；服务端未配置 `PERSONAL_ACCESS_TOKEN` 时返回 `503`。
 
 ## 传参数：如v2ex

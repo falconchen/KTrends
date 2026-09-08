@@ -86,6 +86,20 @@ class TranslationRequest(BaseModel):
     to: str = Field(..., min_length=1, description="Target language")
     stream: bool = Field(default=False, description="Return Server-Sent Events")
 
+
+class ContentRequest(BaseModel):
+    input: str = Field(..., min_length=1, description="Text or URL to process")
+    lang: str = Field(..., min_length=1, description="Output language")
+    css_selector: str | None = Field(
+        default=None,
+        description="CSS selector used when input is a URL",
+    )
+    stream: bool = Field(default=False, description="Return Server-Sent Events")
+
+
+class KeywordsRequest(ContentRequest):
+    num_keywords: int = Field(default=5, ge=1, le=20, description="Number of keywords")
+
 @app.get("/", response_class=HTMLResponse)
 async def read_home():
     # 异步读取 home.html 文件
@@ -326,6 +340,105 @@ def build_translation_prompt(input_text: str, source_language: str | None, targe
     return prompt
 
 
+def streaming_openai_response(prompt: str, suffix: str | None = None):
+    def generate():
+        try:
+            response = get_openai_response_stream(prompt)
+            for chunk in response:
+                if chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    yield f"data: {json.dumps({'content': content}, ensure_ascii=False)}\n\n"
+            if suffix:
+                yield f"data: {json.dumps({'content': suffix}, ensure_ascii=False)}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            error = json.dumps({"error": f"Internal error: {str(e)}"}, ensure_ascii=False)
+            yield f"event: error\ndata: {error}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+def prepare_content_request(request: ContentRequest):
+    input_value = request.input.strip()
+    output_language = request.lang.strip()
+    css_selector = request.css_selector.strip() if request.css_selector else None
+    if not input_value or not output_language:
+        raise HTTPException(status_code=422, detail="input and lang must not be blank")
+    return input_value, output_language, css_selector
+
+
+@app.post(
+    "/api/v1/summary",
+    dependencies=[Depends(require_personal_access_token)],
+    tags=["Content"],
+)
+async def summarize(request: ContentRequest):
+    """Summarize text or webpage content."""
+    try:
+        input_value, output_language, css_selector = prepare_content_request(request)
+        text = process_input(input_value, css_selector)
+        prompt = summary_prompt_template.format(text=text, lang=output_language)
+        if request.stream:
+            return streaming_openai_response(prompt)
+        return {"result": get_openai_response(prompt)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.post(
+    "/api/v1/social",
+    dependencies=[Depends(require_personal_access_token)],
+    tags=["Content"],
+)
+async def create_social_post(request: ContentRequest):
+    """Create a social-media post from text or webpage content."""
+    try:
+        input_value, output_language, css_selector = prepare_content_request(request)
+        text = process_input(input_value, css_selector)
+        prompt = socail_prompt_template.format(text=text, lang=output_language)
+        source_suffix = f"\n\n{input_value}" if input_value.startswith(("http://", "https://")) else None
+        if request.stream:
+            return streaming_openai_response(prompt, source_suffix)
+        result = get_openai_response(prompt)
+        if source_suffix:
+            result += source_suffix
+        return {"result": result}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.post(
+    "/api/v1/keywords",
+    dependencies=[Depends(require_personal_access_token)],
+    tags=["Content"],
+)
+async def extract_keywords(request: KeywordsRequest):
+    """Extract keywords from text or webpage content."""
+    try:
+        input_value, output_language, css_selector = prepare_content_request(request)
+        text = process_input(input_value, css_selector)
+        prompt = keywords_prompt_template.format(
+            num_keywords=request.num_keywords,
+            text=text,
+            lang=output_language,
+        )
+        if request.stream:
+            return streaming_openai_response(prompt)
+        return {"result": get_openai_response(prompt)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
 @app.post(
     "/api/v1/translation",
     dependencies=[Depends(require_personal_access_token)],
@@ -348,23 +461,7 @@ async def translate(request: TranslationRequest):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
-    def generate():
-        try:
-            response = get_openai_response_stream(prompt)
-            for chunk in response:
-                if chunk.choices[0].delta.content:
-                    content = chunk.choices[0].delta.content
-                    yield f"data: {json.dumps({'content': content}, ensure_ascii=False)}\n\n"
-            yield "data: [DONE]\n\n"
-        except Exception as e:
-            error = json.dumps({"error": f"Internal error: {str(e)}"}, ensure_ascii=False)
-            yield f"event: error\ndata: {error}\n\n"
-
-    return StreamingResponse(
-        generate(),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
+    return streaming_openai_response(prompt)
 
 
 @app.post("/api/get_translation")
