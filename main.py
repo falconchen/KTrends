@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Query,Form
+from fastapi import Depends, FastAPI, HTTPException, Query, Form, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 import requests
 from pydantic import BaseModel, Field
@@ -12,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse
 import aiofiles
 import json
+import secrets
 
 import os
 
@@ -29,6 +31,7 @@ load_dotenv(dotenv_path=prompts_path)
 openai_api_key = os.getenv("OPENAI_API_KEY")
 openai_base_url = os.getenv("OPENAI_BASE_URL")
 openai_model = os.getenv("OPENAI_MODEL")
+personal_access_token = os.getenv("PERSONAL_ACCESS_TOKEN")
 keywords_prompt_template = os.getenv("KEYWORDS_PROMPT")
 summary_prompt_template = os.getenv("SUMMARY_PROMPT")
 socail_prompt_template = os.getenv("SOCAIL_POST_PROMPT")
@@ -45,8 +48,43 @@ headers = {
 # print(ua_string,openai_api_key,openai_base_url)
 
 
-app = FastAPI()
+app = FastAPI(title="HiCMS API")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def require_personal_access_token(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+):
+    """Authenticate versioned API requests with the token configured in .env."""
+    if not personal_access_token:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="API authentication is not configured",
+        )
+
+    if (
+        credentials is None
+        or credentials.scheme.lower() != "bearer"
+        or not secrets.compare_digest(credentials.credentials, personal_access_token)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing Personal Access Token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+class TranslationRequest(BaseModel):
+    input: str = Field(..., min_length=1, description="Text to translate")
+    from_: str | None = Field(
+        default=None,
+        alias="from",
+        description="Source language; omit to detect automatically",
+    )
+    to: str = Field(..., min_length=1, description="Target language")
+    stream: bool = Field(default=False, description="Return Server-Sent Events")
 
 @app.get("/", response_class=HTMLResponse)
 async def read_home():
@@ -134,7 +172,7 @@ def get_openai_response(prompt):
 
         openai_client = OpenAI(api_key=openai_api_key, base_url=openai_base_url)
         response = openai_client.chat.completions.create(
-            model="deepseek-chat",
+            model=openai_model or "deepseek-chat",
             messages=[
                 {"role": "system", "content": "You are a helpful content assistant"},
                 {"role": "user", "content": prompt},
@@ -150,7 +188,7 @@ def get_openai_response(prompt):
 def get_openai_response_stream(prompt):
         openai_client = OpenAI(api_key=openai_api_key, base_url=openai_base_url)
         response = openai_client.chat.completions.create(
-            model="deepseek-chat",
+            model=openai_model or "deepseek-chat",
             messages=[
                 {"role": "system", "content": "You are a helpful content assistant"},
                 {"role": "user", "content": prompt},
@@ -279,6 +317,54 @@ async def extract_content(input: str = Form(..., description="The html codes."))
         
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
     
+
+
+def build_translation_prompt(input_text: str, source_language: str | None, target_language: str):
+    prompt = translate_prompt_template.format(text=input_text, lang=target_language)
+    if source_language:
+        prompt = f"The source language is {source_language}.\n{prompt}"
+    return prompt
+
+
+@app.post(
+    "/api/v1/translation",
+    dependencies=[Depends(require_personal_access_token)],
+    tags=["Translation"],
+)
+async def translate(request: TranslationRequest):
+    """Translate text, optionally returning incremental output as SSE."""
+    text = request.input.strip()
+    target_language = request.to.strip()
+    source_language = request.from_.strip() if request.from_ else None
+
+    if not text or not target_language:
+        raise HTTPException(status_code=422, detail="input and to must not be blank")
+
+    prompt = build_translation_prompt(text, source_language, target_language)
+
+    if not request.stream:
+        try:
+            return {"result": get_openai_response(prompt)}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+    def generate():
+        try:
+            response = get_openai_response_stream(prompt)
+            for chunk in response:
+                if chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    yield f"data: {json.dumps({'content': content}, ensure_ascii=False)}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            error = json.dumps({"error": f"Internal error: {str(e)}"}, ensure_ascii=False)
+            yield f"event: error\ndata: {error}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.post("/api/get_translation")

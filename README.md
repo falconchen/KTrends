@@ -13,6 +13,56 @@ source KTrends/bin/activate
 uvicorn main:app --reload --port 8000
 ```
 
+## API 使用方式
+
+在 `.env` 中配置 Personal Access Token。请使用自己的随机 Token，不要提交真实 Token：
+
+```dotenv
+PERSONAL_ACCESS_TOKEN="replace-with-a-long-random-token"
+```
+
+调用 API 时通过 `Authorization` 请求头传递：
+
+```http
+Authorization: Bearer <YOUR_PERSONAL_ACCESS_TOKEN>
+```
+
+### 翻译接口
+
+`POST /api/v1/translation`，请求体为 JSON：
+
+```bash
+curl -N -X POST 'https://hicms.eu.org/api/v1/translation' \
+  -H 'Authorization: Bearer <YOUR_PERSONAL_ACCESS_TOKEN>' \
+  -H 'Content-Type: application/json' \
+  -d '{"input":"Hello from API","from":"en","to":"zh-CN","stream":false}'
+```
+
+参数：
+
+- `input`：必填，要翻译的文本。
+- `from`：可选，源语系；省略时由模型自动判断。
+- `to`：必填，目标语系，如 `zh-CN`、`en`。
+- `stream`：可选，是否使用流式输出，默认为 `false`。
+
+非流式响应：
+
+```json
+{"result":"来自 API 的问候"}
+```
+
+启用流式输出时，将 `stream` 设为 `true`。响应类型为 `text/event-stream`，每个数据块格式如下，并以 `data: [DONE]` 结束：
+
+```text
+data: {"content":"来自"}
+
+data: {"content":" API 的问候"}
+
+data: [DONE]
+```
+
+Token 缺失或无效时接口返回 `401`；服务端未配置 `PERSONAL_ACCESS_TOKEN` 时返回 `503`。
+
 ## 传参数：如v2ex
 
 ```
