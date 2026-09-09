@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 from types import SimpleNamespace
+import json
 import time
 
 import jwt
@@ -78,6 +79,100 @@ class McpProtocolTests(unittest.TestCase):
             result = called.json()["result"]
             self.assertEqual(result["content"], [{"type": "text", "text": "translated:hello:zh-CN"}])
             self.assertEqual(result["structuredContent"], {"result": "translated:hello:zh-CN"})
+
+    @patch.object(Auth0TokenVerifier, "verify_token", accept_test_token)
+    def test_tool_audit_log_contains_only_safe_structured_fields(self):
+        secret_input = "private input that must not be logged"
+        secret_output = "private output that must not be logged"
+        app = create_mcp_app(
+            public_url="https://hicms.eu.org/mcp",
+            issuer="https://tenant.auth0.com/",
+            audience="https://hicms.eu.org/mcp",
+            required_scope="ktrends:invoke",
+            allowed_subject="auth0|owner",
+            summarize=lambda input, lang, selector: secret_output,
+            social_post=lambda input, lang, selector: secret_output,
+            keywords=lambda input, lang, count, selector: secret_output,
+            translate=lambda input, to, source: secret_output,
+        )
+        headers = {
+            "Authorization": "Bearer valid-token",
+            "Accept": "application/json, text/event-stream",
+        }
+        with self.assertLogs("uvicorn.error.ktrends.mcp.audit", level="INFO") as captured:
+            with TestClient(app, base_url="https://hicms.eu.org") as client:
+                response = client.post(
+                    "/mcp",
+                    headers=headers,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "tools/call",
+                        "params": {
+                            "name": "translate_text",
+                            "arguments": {"input": secret_input, "to": "zh-CN"},
+                        },
+                    },
+                )
+        self.assertEqual(response.status_code, 200)
+        message = captured.records[-1].getMessage()
+        event = json.loads(message)
+        self.assertEqual(
+            set(event),
+            {"duration_ms", "error_type", "event", "status", "tool", "user"},
+        )
+        self.assertEqual(event["event"], "mcp_tool_call")
+        self.assertEqual(event["tool"], "translate_text")
+        self.assertEqual(event["status"], "success")
+        self.assertIsNone(event["error_type"])
+        self.assertNotEqual(event["user"], "auth0|owner")
+        self.assertNotIn("auth0|owner", message)
+        self.assertNotIn(secret_input, message)
+        self.assertNotIn(secret_output, message)
+
+    @patch.object(Auth0TokenVerifier, "verify_token", accept_test_token)
+    def test_tool_audit_log_records_error_type_without_error_message(self):
+        class PrivateUpstreamError(RuntimeError):
+            pass
+
+        def fail(_input, _to, _source):
+            raise PrivateUpstreamError("sensitive upstream details")
+
+        app = create_mcp_app(
+            public_url="https://hicms.eu.org/mcp",
+            issuer="https://tenant.auth0.com/",
+            audience="https://hicms.eu.org/mcp",
+            required_scope="ktrends:invoke",
+            allowed_subject="auth0|owner",
+            summarize=lambda input, lang, selector: "unused",
+            social_post=lambda input, lang, selector: "unused",
+            keywords=lambda input, lang, count, selector: "unused",
+            translate=fail,
+        )
+        headers = {
+            "Authorization": "Bearer valid-token",
+            "Accept": "application/json, text/event-stream",
+        }
+        with self.assertLogs("uvicorn.error.ktrends.mcp.audit", level="INFO") as captured:
+            with TestClient(app, base_url="https://hicms.eu.org") as client:
+                response = client.post(
+                    "/mcp",
+                    headers=headers,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "tools/call",
+                        "params": {
+                            "name": "translate_text",
+                            "arguments": {"input": "secret", "to": "zh-CN"},
+                        },
+                    },
+                )
+        self.assertEqual(response.status_code, 200)
+        event = json.loads(captured.records[-1].getMessage())
+        self.assertEqual(event["status"], "error")
+        self.assertEqual(event["error_type"], "PrivateUpstreamError")
+        self.assertNotIn("sensitive upstream details", captured.records[-1].getMessage())
 
     @patch.object(Auth0TokenVerifier, "verify_token", accept_test_token)
     def test_missing_token_is_rejected_with_oauth_metadata(self):

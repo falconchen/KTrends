@@ -282,6 +282,22 @@ Auth0 的通用错误页信息不足时，到 **Monitoring → Logs** 找对应�
   可定期在 Auth0 Applications 中清理不再使用的旧客户端。
 - 工具元数据变更后执行测试，并在 ChatGPT 中刷新连接器。
 
+### MCP 工具审计日志
+
+每次进入工具执行层的调用都会产生一条 JSON 结构化日志，只包含工具名、匿名用户指纹、
+耗时、状态和错误类型，例如：
+
+```json
+{"duration_ms":842,"error_type":null,"event":"mcp_tool_call","status":"success","tool":"translate_text","user":"0123456789abcdef"}
+```
+
+用户指纹是 Auth0 `sub` 的 SHA-256 短指纹。日志不会记录工具参数、输入正文、网页内容、
+Prompt、模型输出、异常消息、Token 或 Authorization 头。查看近期工具调用：
+
+```bash
+docker compose logs --since 2h ktrends | rg '"event":"mcp_tool_call"'
+```
+
 ## 参考资料
 
 - [OpenAI：Authentication](https://developers.openai.com/plugins/build/auth)

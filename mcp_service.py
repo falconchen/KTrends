@@ -5,6 +5,9 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict, deque
 from collections.abc import Callable
+import hashlib
+import json
+import logging
 import time
 from typing import Annotated
 from urllib.parse import urlparse
@@ -21,11 +24,37 @@ from mcp_types import ToolAnnotations
 from pydantic import Field
 
 
+audit_logger = logging.getLogger("uvicorn.error.ktrends.mcp.audit")
+
 TOOL_ANNOTATIONS = ToolAnnotations(
     readOnlyHint=True,
     destructiveHint=False,
     openWorldHint=True,
 )
+
+
+def _anonymous_subject(subject: str) -> str:
+    """Return a stable, non-reversible identifier without exposing the Auth0 subject."""
+    return hashlib.sha256(subject.encode("utf-8")).hexdigest()[:16]
+
+
+def _log_tool_audit(
+    *,
+    tool: str,
+    subject: str,
+    duration_ms: int,
+    status: str,
+    error_type: str | None,
+) -> None:
+    event = {
+        "duration_ms": duration_ms,
+        "error_type": error_type,
+        "event": "mcp_tool_call",
+        "status": status,
+        "tool": tool,
+        "user": _anonymous_subject(subject) if subject else "anonymous",
+    }
+    audit_logger.info(json.dumps(event, separators=(",", ":"), sort_keys=True))
 
 
 class Auth0TokenVerifier:
@@ -133,17 +162,39 @@ def create_mcp_app(
     limiter = SubjectRateLimiter(rate_limit_calls, rate_limit_window)
     oauth_meta = {"securitySchemes": [{"type": "oauth2", "scopes": [required_scope]}]}
 
-    async def invoke(fn: Callable[..., str], *args) -> str:
+    async def invoke(tool: str, fn: Callable[..., str], *args) -> str:
+        started = time.perf_counter()
+        subject = ""
+        status = "error"
+        error_type: str | None = None
         access_token = get_access_token()
-        if not access_token or not access_token.subject:
-            raise ToolError("Authentication is required")
-        await limiter.check(access_token.subject)
         try:
+            if not access_token or not access_token.subject:
+                raise ToolError("Authentication is required")
+            subject = access_token.subject
+            await limiter.check(subject)
             with anyio.fail_after(timeout_seconds):
                 async with semaphore:
-                    return await anyio.to_thread.run_sync(lambda: fn(*args))
+                    result = await anyio.to_thread.run_sync(lambda: fn(*args))
+            status = "success"
+            return result
         except TimeoutError as exc:
+            error_type = "TimeoutError"
             raise ToolError("The content operation timed out") from exc
+        except ToolError as exc:
+            error_type = type(exc).__name__
+            raise
+        except Exception as exc:
+            error_type = type(exc).__name__
+            raise ToolError("The content operation failed") from None
+        finally:
+            _log_tool_audit(
+                tool=tool,
+                subject=subject,
+                duration_ms=round((time.perf_counter() - started) * 1000),
+                status=status,
+                error_type=error_type,
+            )
 
     @server.tool(
         name="translate_text",
@@ -160,7 +211,13 @@ def create_mcp_app(
             Field(description="Source language; omit to detect automatically"),
         ] = None,
     ) -> str:
-        return await invoke(translate, input.strip(), to.strip(), from_language.strip() if from_language else None)
+        return await invoke(
+            "translate_text",
+            translate,
+            input.strip(),
+            to.strip(),
+            from_language.strip() if from_language else None,
+        )
 
     @server.tool(
         name="summarize_content",
@@ -176,7 +233,13 @@ def create_mcp_app(
             str | None, Field(description="Optional CSS selector when input is a URL")
         ] = None,
     ) -> str:
-        return await invoke(summarize, input.strip(), lang.strip(), css_selector.strip() if css_selector else None)
+        return await invoke(
+            "summarize_content",
+            summarize,
+            input.strip(),
+            lang.strip(),
+            css_selector.strip() if css_selector else None,
+        )
 
     @server.tool(
         name="create_social_post",
@@ -192,7 +255,13 @@ def create_mcp_app(
             str | None, Field(description="Optional CSS selector when input is a URL")
         ] = None,
     ) -> str:
-        return await invoke(social_post, input.strip(), lang.strip(), css_selector.strip() if css_selector else None)
+        return await invoke(
+            "create_social_post",
+            social_post,
+            input.strip(),
+            lang.strip(),
+            css_selector.strip() if css_selector else None,
+        )
 
     @server.tool(
         name="extract_keywords",
@@ -210,6 +279,7 @@ def create_mcp_app(
         ] = None,
     ) -> str:
         return await invoke(
+            "extract_keywords",
             keywords,
             input.strip(),
             lang.strip(),
