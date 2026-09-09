@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 import openai
 from openai import OpenAI
 from pathlib import Path
+from typing import Literal
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse
 import aiofiles
@@ -52,6 +53,9 @@ summary_prompt_template = os.getenv("SUMMARY_PROMPT")
 socail_prompt_template = os.getenv("SOCAIL_POST_PROMPT")
 #socail_prompt_template = os.getenv("XHS_POST_PROMPT")
 translate_prompt_template = os.getenv("TRANSLATE_POST_PROMPT")
+rewrite_prompt_template = os.getenv("REWRITE_PROMPT")
+title_meta_prompt_template = os.getenv("TITLE_META_PROMPT")
+structure_prompt_template = os.getenv("STRUCTURE_PROMPT")
 
 lang = os.getenv("DEFAULT_LANG")
 
@@ -120,6 +124,30 @@ class ContentRequest(BaseModel):
 
 class KeywordsRequest(ContentRequest):
     num_keywords: int = Field(default=5, ge=1, le=20, description="Number of keywords")
+
+
+class RewriteRequest(ContentRequest):
+    style: Literal["polished", "concise", "professional", "conversational", "marketing"] = Field(
+        default="polished",
+        description="Rewriting style",
+    )
+
+
+class TitleMetaRequest(ContentRequest):
+    num_titles: int = Field(default=5, ge=1, le=10, description="Number of title candidates")
+    target_keyword: str | None = Field(
+        default=None,
+        max_length=100,
+        description="Optional target keyword to use naturally",
+    )
+
+
+class StructureRequest(ContentRequest):
+    format: Literal["article", "faq", "article_and_faq"] = Field(
+        default="article_and_faq",
+        description="Requested output structure",
+    )
+    num_faq: int = Field(default=5, ge=1, le=20, description="Number of FAQ items")
 
 @app.get("/", response_class=HTMLResponse)
 async def read_home():
@@ -259,6 +287,15 @@ def process_input(input,css_selector=None):
     return text
 
 
+def prepare_form_content(input_value: str, output_language: str, css_selector: str | None):
+    input_value = input_value.strip()
+    output_language = output_language.strip()
+    css_selector = css_selector.strip() if css_selector else None
+    if not input_value or not output_language:
+        raise HTTPException(status_code=422, detail="input and lang must not be blank")
+    return input_value, output_language, css_selector
+
+
 def get_openai_response(prompt):
 
         openai_client = OpenAI(api_key=openai_api_key, base_url=openai_base_url)
@@ -370,6 +407,66 @@ async def get_summary(input: str = Form(..., description="The text or urlfrom wh
 
     except Exception as e:        
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.post("/api/get_rewrite")
+async def get_rewrite(
+    input: str = Form(..., min_length=1, description="The text or URL to rewrite"),
+    lang: str = Form(..., min_length=1, description="The output language"),
+    style: Literal["polished", "concise", "professional", "conversational", "marketing"] = Form(
+        "polished", description="The rewriting style"
+    ),
+    css_selector: str = Form(None, description="CSS selector for URL input, optional"),
+):
+    try:
+        input_value, output_language, css_selector = prepare_form_content(input, lang, css_selector)
+        return {"result": run_rewrite(input_value, output_language, style, css_selector)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.post("/api/get_title_meta")
+async def get_title_meta(
+    input: str = Form(..., min_length=1, description="The text or URL to create titles for"),
+    lang: str = Form(..., min_length=1, description="The output language"),
+    num_titles: int = Form(5, ge=1, le=10, description="Number of title candidates"),
+    target_keyword: str = Form(None, max_length=100, description="Optional target keyword"),
+    css_selector: str = Form(None, description="CSS selector for URL input, optional"),
+):
+    try:
+        input_value, output_language, css_selector = prepare_form_content(input, lang, css_selector)
+        return {
+            "result": run_title_meta(
+                input_value,
+                output_language,
+                num_titles,
+                target_keyword.strip() if target_keyword else None,
+                css_selector,
+            )
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.post("/api/get_structure")
+async def get_structure(
+    input: str = Form(..., min_length=1, description="The text or URL to structure"),
+    lang: str = Form(..., min_length=1, description="The output language"),
+    format: Literal["article", "faq", "article_and_faq"] = Form(
+        "article_and_faq", description="The requested output format"
+    ),
+    num_faq: int = Form(5, ge=1, le=20, description="Number of FAQ items"),
+    css_selector: str = Form(None, description="CSS selector for URL input, optional"),
+):
+    try:
+        input_value, output_language, css_selector = prepare_form_content(input, lang, css_selector)
+        return {
+            "result": run_structure(
+                input_value, output_language, format, num_faq, css_selector
+            )
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
     
 @app.post("/api/extract_content")
 async def extract_content(input: str = Form(..., description="The html codes.")):
@@ -473,6 +570,51 @@ def run_keywords(
     return get_openai_response(prompt)
 
 
+def run_rewrite(
+    input_value: str,
+    output_language: str,
+    style: str = "polished",
+    css_selector: str | None = None,
+) -> str:
+    text = process_input(input_value, css_selector)
+    prompt = rewrite_prompt_template.format(text=text, lang=output_language, style=style)
+    return get_openai_response(prompt)
+
+
+def run_title_meta(
+    input_value: str,
+    output_language: str,
+    num_titles: int = 5,
+    target_keyword: str | None = None,
+    css_selector: str | None = None,
+) -> str:
+    text = process_input(input_value, css_selector)
+    prompt = title_meta_prompt_template.format(
+        text=text,
+        lang=output_language,
+        num_titles=num_titles,
+        target_keyword=target_keyword or "None specified",
+    )
+    return get_openai_response(prompt)
+
+
+def run_structure(
+    input_value: str,
+    output_language: str,
+    output_format: str = "article_and_faq",
+    num_faq: int = 5,
+    css_selector: str | None = None,
+) -> str:
+    text = process_input(input_value, css_selector)
+    prompt = structure_prompt_template.format(
+        text=text,
+        lang=output_language,
+        format=output_format,
+        num_faq=num_faq,
+    )
+    return get_openai_response(prompt)
+
+
 def run_translation(input_text: str, target_language: str, source_language: str | None = None) -> str:
     return get_openai_response(build_translation_prompt(input_text, source_language, target_language))
 
@@ -545,6 +687,85 @@ async def extract_keywords(request: KeywordsRequest):
 
 
 @app.post(
+    "/api/v1/rewrite",
+    dependencies=[Depends(require_personal_access_token)],
+    tags=["Content"],
+)
+async def rewrite_content(request: RewriteRequest):
+    """Rewrite or polish text or webpage content in a selected style."""
+    try:
+        input_value, output_language, css_selector = prepare_content_request(request)
+        if request.stream:
+            text = process_input(input_value, css_selector)
+            prompt = rewrite_prompt_template.format(
+                text=text,
+                lang=output_language,
+                style=request.style,
+            )
+            return streaming_openai_response(prompt)
+        return {
+            "result": run_rewrite(input_value, output_language, request.style, css_selector)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.post(
+    "/api/v1/title-meta",
+    dependencies=[Depends(require_personal_access_token)],
+    tags=["Content"],
+)
+async def create_title_meta(request: TitleMetaRequest):
+    """Create title candidates and a search-friendly meta description."""
+    try:
+        input_value, output_language, css_selector = prepare_content_request(request)
+        target_keyword = request.target_keyword.strip() if request.target_keyword else None
+        text = process_input(input_value, css_selector)
+        prompt = title_meta_prompt_template.format(
+            text=text,
+            lang=output_language,
+            num_titles=request.num_titles,
+            target_keyword=target_keyword or "None specified",
+        )
+        if request.stream:
+            return streaming_openai_response(prompt)
+        return {
+            "result": get_openai_response(prompt)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.post(
+    "/api/v1/structure",
+    dependencies=[Depends(require_personal_access_token)],
+    tags=["Content"],
+)
+async def structure_content(request: StructureRequest):
+    """Turn text or webpage content into a structured article, FAQ, or both."""
+    try:
+        input_value, output_language, css_selector = prepare_content_request(request)
+        text = process_input(input_value, css_selector)
+        prompt = structure_prompt_template.format(
+            text=text,
+            lang=output_language,
+            format=request.format,
+            num_faq=request.num_faq,
+        )
+        if request.stream:
+            return streaming_openai_response(prompt)
+        return {"result": get_openai_response(prompt)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.post(
     "/api/v1/translation",
     dependencies=[Depends(require_personal_access_token)],
     tags=["Translation"],
@@ -594,35 +815,6 @@ async def get_translation(input: str = Form(..., description="The text from whic
     except Exception as e:
         logger.exception("Legacy translation failed")
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
-
-
-if mcp_enabled:
-    from mcp_service import create_mcp_app
-
-    mcp_asgi_app = create_mcp_app(
-        public_url=mcp_public_url,
-        issuer=auth0_issuer,
-        audience=auth0_audience,
-        required_scope=auth0_required_scope,
-        allowed_subject=auth0_allowed_subject,
-        summarize=run_summary,
-        social_post=run_social_post,
-        keywords=run_keywords,
-        translate=run_translation,
-        max_concurrency=int(os.getenv("MCP_MAX_CONCURRENCY", "4")),
-        timeout_seconds=float(os.getenv("MCP_TOOL_TIMEOUT_SECONDS", "120")),
-        rate_limit_calls=int(os.getenv("MCP_RATE_LIMIT_CALLS", "30")),
-        rate_limit_window=int(os.getenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")),
-    )
-
-    @asynccontextmanager
-    async def app_lifespan(_app):
-        async with mcp_asgi_app.router.lifespan_context(mcp_asgi_app):
-            yield
-
-    app.router.lifespan_context = app_lifespan
-    # Mount last so the existing website and REST routes keep precedence.
-    app.mount("/", mcp_asgi_app)
 
 
 # 流式输出API
@@ -717,6 +909,70 @@ async def stream_get_summary(input: str = Form(..., description="The text or url
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 
+@app.post("/api/stream/get_rewrite")
+async def stream_get_rewrite(
+    input: str = Form(..., min_length=1, description="The text or URL to rewrite"),
+    lang: str = Form(..., min_length=1, description="The output language"),
+    style: Literal["polished", "concise", "professional", "conversational", "marketing"] = Form(
+        "polished", description="The rewriting style"
+    ),
+    css_selector: str = Form(None, description="CSS selector for URL input, optional"),
+):
+    try:
+        input_value, output_language, css_selector = prepare_form_content(input, lang, css_selector)
+        text = process_input(input_value, css_selector)
+        prompt = rewrite_prompt_template.format(text=text, lang=output_language, style=style)
+        return streaming_openai_response(prompt)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.post("/api/stream/get_title_meta")
+async def stream_get_title_meta(
+    input: str = Form(..., min_length=1, description="The text or URL to create titles for"),
+    lang: str = Form(..., min_length=1, description="The output language"),
+    num_titles: int = Form(5, ge=1, le=10, description="Number of title candidates"),
+    target_keyword: str = Form(None, max_length=100, description="Optional target keyword"),
+    css_selector: str = Form(None, description="CSS selector for URL input, optional"),
+):
+    try:
+        input_value, output_language, css_selector = prepare_form_content(input, lang, css_selector)
+        text = process_input(input_value, css_selector)
+        prompt = title_meta_prompt_template.format(
+            text=text,
+            lang=output_language,
+            num_titles=num_titles,
+            target_keyword=target_keyword.strip() if target_keyword else "None specified",
+        )
+        return streaming_openai_response(prompt)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.post("/api/stream/get_structure")
+async def stream_get_structure(
+    input: str = Form(..., min_length=1, description="The text or URL to structure"),
+    lang: str = Form(..., min_length=1, description="The output language"),
+    format: Literal["article", "faq", "article_and_faq"] = Form(
+        "article_and_faq", description="The requested output format"
+    ),
+    num_faq: int = Form(5, ge=1, le=20, description="Number of FAQ items"),
+    css_selector: str = Form(None, description="CSS selector for URL input, optional"),
+):
+    try:
+        input_value, output_language, css_selector = prepare_form_content(input, lang, css_selector)
+        text = process_input(input_value, css_selector)
+        prompt = structure_prompt_template.format(
+            text=text,
+            lang=output_language,
+            format=format,
+            num_faq=num_faq,
+        )
+        return streaming_openai_response(prompt)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
 @app.post("/api/stream/get_translation")
 async def stream_get_translation(input: str = Form(..., description="The text from which to get translate"),
                        lang: str = Form(..., description="The target language of the text ai translate to.")
@@ -742,3 +998,35 @@ async def stream_get_translation(input: str = Form(..., description="The text fr
     except Exception as e:
         logger.exception("Legacy streaming endpoint failed")
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+if mcp_enabled:
+    from mcp_service import create_mcp_app
+
+    mcp_asgi_app = create_mcp_app(
+        public_url=mcp_public_url,
+        issuer=auth0_issuer,
+        audience=auth0_audience,
+        required_scope=auth0_required_scope,
+        allowed_subject=auth0_allowed_subject,
+        summarize=run_summary,
+        social_post=run_social_post,
+        keywords=run_keywords,
+        translate=run_translation,
+        rewrite=run_rewrite,
+        title_meta=run_title_meta,
+        structure=run_structure,
+        max_concurrency=int(os.getenv("MCP_MAX_CONCURRENCY", "4")),
+        timeout_seconds=float(os.getenv("MCP_TOOL_TIMEOUT_SECONDS", "120")),
+        rate_limit_calls=int(os.getenv("MCP_RATE_LIMIT_CALLS", "30")),
+        rate_limit_window=int(os.getenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")),
+    )
+
+    @asynccontextmanager
+    async def app_lifespan(_app):
+        async with mcp_asgi_app.router.lifespan_context(mcp_asgi_app):
+            yield
+
+    app.router.lifespan_context = app_lifespan
+    # Mount last so the existing website and REST routes keep precedence.
+    app.mount("/", mcp_asgi_app)

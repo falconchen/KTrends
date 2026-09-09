@@ -69,6 +69,11 @@
 
     }
 
+    .stream-text {
+      white-space: pre-wrap;
+      padding-right: 42px;
+    }
+
     .copy-button {
       position: absolute;
       top: 10px;
@@ -171,6 +176,24 @@
           <ion-icon name="share-social-outline"></ion-icon> 社交推文
         </button>
       </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="rewrite-tab" data-bs-toggle="tab" data-bs-target="#rewrite" type="button" role="tab"
+          aria-controls="rewrite" aria-selected="false">
+          <ion-icon name="create-outline"></ion-icon> 改写润色
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="title-meta-tab" data-bs-toggle="tab" data-bs-target="#title-meta" type="button"
+          role="tab" aria-controls="title-meta" aria-selected="false">
+          <ion-icon name="reader-outline"></ion-icon> 标题与描述
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="structure-tab" data-bs-toggle="tab" data-bs-target="#structure" type="button"
+          role="tab" aria-controls="structure" aria-selected="false">
+          <ion-icon name="git-branch-outline"></ion-icon> 文章结构
+        </button>
+      </li>
     </ul>
 
     <div class="tab-content" id="myTabContent">
@@ -247,6 +270,100 @@
         <button class="btn btn-primary" onclick="processSummary()"><ion-icon name="newspaper-outline"></ion-icon>
           生成摘要</button>
         <div id="summary-result" class="result"></div>
+      </div>
+
+      <div class="tab-pane fade" id="rewrite" role="tabpanel" aria-labelledby="rewrite-tab">
+        <div class="mb-3">
+          <textarea class="form-control content-input" id="rewrite-content" rows="6"
+            placeholder="请输入需要改写或润色的文章内容或URL..."></textarea>
+        </div>
+        <div class="mb-3 css-selector-input" id="rewrite-css-selector-group" style="display: none;">
+          <input type="text" class="form-control css-selector" id="rewrite-css-selector"
+            placeholder="请输入CSS选择器，如：div#article（非必填）">
+        </div>
+        <div class="mb-3">
+          <label for="rewrite-style" class="form-label">改写风格：</label>
+          <select class="form-select" id="rewrite-style">
+            <option value="polished">自然润色</option>
+            <option value="concise">精简凝练</option>
+            <option value="professional">专业正式</option>
+            <option value="conversational">亲切口语</option>
+            <option value="marketing">营销表达</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="rewrite-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 输出语言：</label>
+          <select class="form-select language-select" id="rewrite-language">
+            <option value="zh-CN">简体中文</option><option value="zh-HK">繁体中文（HK）</option>
+            <option value="zh-TW">繁体中文（TW）</option><option value="en">英文</option><option value="jp">日文</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="processRewrite()"><ion-icon name="create-outline"></ion-icon> 开始改写</button>
+        <div id="rewrite-result" class="result"></div>
+      </div>
+
+      <div class="tab-pane fade" id="title-meta" role="tabpanel" aria-labelledby="title-meta-tab">
+        <div class="mb-3">
+          <textarea class="form-control content-input" id="title-meta-content" rows="6"
+            placeholder="请输入文章内容或URL..."></textarea>
+        </div>
+        <div class="mb-3 css-selector-input" id="title-meta-css-selector-group" style="display: none;">
+          <input type="text" class="form-control css-selector" id="title-meta-css-selector"
+            placeholder="请输入CSS选择器，如：div#article（非必填）">
+        </div>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="title-meta-count" class="form-label">候选标题数量：</label>
+            <input type="number" class="form-control" id="title-meta-count" min="1" max="10" value="5">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label for="title-meta-keyword" class="form-label">目标关键词（可选）：</label>
+            <input type="text" class="form-control" id="title-meta-keyword" maxlength="100">
+          </div>
+        </div>
+        <div class="mb-3">
+          <label for="title-meta-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 输出语言：</label>
+          <select class="form-select language-select" id="title-meta-language">
+            <option value="zh-CN">简体中文</option><option value="zh-HK">繁体中文（HK）</option>
+            <option value="zh-TW">繁体中文（TW）</option><option value="en">英文</option><option value="jp">日文</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="processTitleMeta()"><ion-icon name="reader-outline"></ion-icon> 生成标题与描述</button>
+        <div id="title-meta-result" class="result"></div>
+      </div>
+
+      <div class="tab-pane fade" id="structure" role="tabpanel" aria-labelledby="structure-tab">
+        <div class="mb-3">
+          <textarea class="form-control content-input" id="structure-content" rows="6"
+            placeholder="请输入需要结构化的文章内容或URL..."></textarea>
+        </div>
+        <div class="mb-3 css-selector-input" id="structure-css-selector-group" style="display: none;">
+          <input type="text" class="form-control css-selector" id="structure-css-selector"
+            placeholder="请输入CSS选择器，如：div#article（非必填）">
+        </div>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="structure-format" class="form-label">输出形式：</label>
+            <select class="form-select" id="structure-format">
+              <option value="article_and_faq">结构化文章 + FAQ</option>
+              <option value="article">仅结构化文章</option>
+              <option value="faq">仅 FAQ</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label for="structure-faq-count" class="form-label">FAQ 数量：</label>
+            <input type="number" class="form-control" id="structure-faq-count" min="1" max="20" value="5">
+          </div>
+        </div>
+        <div class="mb-3">
+          <label for="structure-language" class="form-label"><ion-icon name="language-outline"></ion-icon> 输出语言：</label>
+          <select class="form-select language-select" id="structure-language">
+            <option value="zh-CN">简体中文</option><option value="zh-HK">繁体中文（HK）</option>
+            <option value="zh-TW">繁体中文（TW）</option><option value="en">英文</option><option value="jp">日文</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="processStructure()"><ion-icon name="git-branch-outline"></ion-icon> 生成结构化内容</button>
+        <div id="structure-result" class="result"></div>
       </div>
 
 
@@ -465,6 +582,88 @@
       );
     }
 
+    function processRewrite() {
+      const content = document.getElementById("rewrite-content").value.trim();
+      const lang = document.getElementById("rewrite-language").value;
+      const style = document.getElementById("rewrite-style").value;
+      const selector = document.getElementById("rewrite-css-selector").value.trim();
+      const resultDiv = document.getElementById("rewrite-result");
+
+      if (!content) return showAlert("请输入需要改写的内容或URL");
+
+      const fd = new FormData();
+      fd.append("input", content);
+      fd.append("lang", lang);
+      fd.append("style", style);
+      if (isURL(content) && selector) fd.append("css_selector", selector);
+
+      setCookie("rewrite-language", lang);
+      setCookie("rewrite-style", style);
+      streamRequest(
+        "/api/stream/get_rewrite",
+        fd,
+        resultDiv,
+        '<ion-icon name="create-outline"></ion-icon> 改写结果'
+      );
+    }
+
+    function processTitleMeta() {
+      const content = document.getElementById("title-meta-content").value.trim();
+      const lang = document.getElementById("title-meta-language").value;
+      const count = document.getElementById("title-meta-count").value;
+      const keyword = document.getElementById("title-meta-keyword").value.trim();
+      const selector = document.getElementById("title-meta-css-selector").value.trim();
+      const resultDiv = document.getElementById("title-meta-result");
+
+      if (!content) return showAlert("请输入内容或URL");
+      if (count < 1 || count > 10) return showAlert("候选标题数量须为 1 至 10");
+
+      const fd = new FormData();
+      fd.append("input", content);
+      fd.append("lang", lang);
+      fd.append("num_titles", count);
+      if (keyword) fd.append("target_keyword", keyword);
+      if (isURL(content) && selector) fd.append("css_selector", selector);
+
+      setCookie("title-meta-language", lang);
+      setCookie("title-meta-count", count);
+      streamRequest(
+        "/api/stream/get_title_meta",
+        fd,
+        resultDiv,
+        '<ion-icon name="reader-outline"></ion-icon> 标题与 Meta 描述'
+      );
+    }
+
+    function processStructure() {
+      const content = document.getElementById("structure-content").value.trim();
+      const lang = document.getElementById("structure-language").value;
+      const format = document.getElementById("structure-format").value;
+      const count = document.getElementById("structure-faq-count").value;
+      const selector = document.getElementById("structure-css-selector").value.trim();
+      const resultDiv = document.getElementById("structure-result");
+
+      if (!content) return showAlert("请输入需要结构化的内容或URL");
+      if (count < 1 || count > 20) return showAlert("FAQ 数量须为 1 至 20");
+
+      const fd = new FormData();
+      fd.append("input", content);
+      fd.append("lang", lang);
+      fd.append("format", format);
+      fd.append("num_faq", count);
+      if (isURL(content) && selector) fd.append("css_selector", selector);
+
+      setCookie("structure-language", lang);
+      setCookie("structure-format", format);
+      setCookie("structure-faq-count", count);
+      streamRequest(
+        "/api/stream/get_structure",
+        fd,
+        resultDiv,
+        '<ion-icon name="git-branch-outline"></ion-icon> 结构化内容'
+      );
+    }
+
     function processTranslation() {
       const content = document.getElementById("translation-content").value.trim();
       const lang = document.getElementById("translation-language").value;
@@ -550,7 +749,12 @@
         "summary-language",
         "social-language",
         "keywords-language",
-        "translation-language"
+        "translation-language",
+        "rewrite-language",
+        "title-meta-language",
+        "structure-language",
+        "rewrite-style",
+        "structure-format"
       ];
 
       saved.forEach(id => {
@@ -562,6 +766,12 @@
 
       const count = getCookie("keywords-count");
       if (count) document.getElementById("keywords-count").value = count;
+
+      const titleCount = getCookie("title-meta-count");
+      if (titleCount) document.getElementById("title-meta-count").value = titleCount;
+
+      const faqCount = getCookie("structure-faq-count");
+      if (faqCount) document.getElementById("structure-faq-count").value = faqCount;
 
       syncInputs();
     });

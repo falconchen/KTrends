@@ -9,7 +9,7 @@ import hashlib
 import json
 import logging
 import time
-from typing import Annotated
+from typing import Annotated, Literal
 from urllib.parse import urlparse
 
 import anyio
@@ -132,6 +132,9 @@ def create_mcp_app(
     social_post: Callable[[str, str, str | None], str],
     keywords: Callable[[str, str, int, str | None], str],
     translate: Callable[[str, str, str | None], str],
+    rewrite: Callable[[str, str, str, str | None], str],
+    title_meta: Callable[[str, str, int, str | None, str | None], str],
+    structure: Callable[[str, str, str, int, str | None], str],
     max_concurrency: int = 4,
     timeout_seconds: float = 120,
     rate_limit_calls: int = 30,
@@ -145,9 +148,10 @@ def create_mcp_app(
     server = MCPServer(
         name="ktrends",
         title="KTrends Content Assistant",
-        version="1.0.0",
+        version="1.1.0",
         instructions=(
-            "Use one focused tool for translation, summarization, social posts, or keyword extraction. "
+            "Use one focused tool for translation, summarization, social posts, keyword extraction, "
+            "rewriting, title and metadata creation, or article and FAQ structuring. "
             "Inputs may be plain text or a public HTTP(S) article URL where documented."
         ),
         token_verifier=verifier,
@@ -284,6 +288,90 @@ def create_mcp_app(
             input.strip(),
             lang.strip(),
             num_keywords,
+            css_selector.strip() if css_selector else None,
+        )
+
+    @server.tool(
+        name="rewrite_content",
+        title="Rewrite content",
+        description="Rewrite or polish text or public webpage content in a selected style.",
+        annotations=TOOL_ANNOTATIONS,
+        meta=oauth_meta,
+    )
+    async def rewrite_content(
+        input: Annotated[str, Field(min_length=1, description="Text or public HTTP(S) URL")],
+        lang: Annotated[str, Field(min_length=1, description="Output language")],
+        style: Annotated[
+            Literal["polished", "concise", "professional", "conversational", "marketing"],
+            Field(description="Rewriting style"),
+        ] = "polished",
+        css_selector: Annotated[
+            str | None, Field(description="Optional CSS selector when input is a URL")
+        ] = None,
+    ) -> str:
+        return await invoke(
+            "rewrite_content",
+            rewrite,
+            input.strip(),
+            lang.strip(),
+            style,
+            css_selector.strip() if css_selector else None,
+        )
+
+    @server.tool(
+        name="create_title_meta",
+        title="Create titles and meta description",
+        description="Create title candidates and a meta description from text or a public webpage.",
+        annotations=TOOL_ANNOTATIONS,
+        meta=oauth_meta,
+    )
+    async def create_title_meta(
+        input: Annotated[str, Field(min_length=1, description="Text or public HTTP(S) URL")],
+        lang: Annotated[str, Field(min_length=1, description="Output language")],
+        num_titles: Annotated[int, Field(ge=1, le=10, description="Number of titles")] = 5,
+        target_keyword: Annotated[
+            str | None, Field(max_length=100, description="Optional target keyword")
+        ] = None,
+        css_selector: Annotated[
+            str | None, Field(description="Optional CSS selector when input is a URL")
+        ] = None,
+    ) -> str:
+        return await invoke(
+            "create_title_meta",
+            title_meta,
+            input.strip(),
+            lang.strip(),
+            num_titles,
+            target_keyword.strip() if target_keyword else None,
+            css_selector.strip() if css_selector else None,
+        )
+
+    @server.tool(
+        name="structure_content",
+        title="Structure article and FAQ",
+        description="Create a structured article, FAQ, or both from text or a public webpage.",
+        annotations=TOOL_ANNOTATIONS,
+        meta=oauth_meta,
+    )
+    async def structure_content(
+        input: Annotated[str, Field(min_length=1, description="Text or public HTTP(S) URL")],
+        lang: Annotated[str, Field(min_length=1, description="Output language")],
+        format: Annotated[
+            Literal["article", "faq", "article_and_faq"],
+            Field(description="Requested output format"),
+        ] = "article_and_faq",
+        num_faq: Annotated[int, Field(ge=1, le=20, description="Number of FAQ items")] = 5,
+        css_selector: Annotated[
+            str | None, Field(description="Optional CSS selector when input is a URL")
+        ] = None,
+    ) -> str:
+        return await invoke(
+            "structure_content",
+            structure,
+            input.strip(),
+            lang.strip(),
+            format,
+            num_faq,
             css_selector.strip() if css_selector else None,
         )
 

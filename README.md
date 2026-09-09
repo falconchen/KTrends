@@ -94,7 +94,49 @@ curl -X POST 'https://hicms.eu.org/api/v1/keywords' \
   -d '{"input":"人工智能正在改变内容生产方式","lang":"zh-CN","num_keywords":5,"stream":false}'
 ```
 
-摘要、社交文案和关键词接口的通用参数：
+### 改写润色接口
+
+`POST /api/v1/rewrite`，支持文本或 URL：
+
+```bash
+curl -X POST 'https://hicms.eu.org/api/v1/rewrite' \
+  -H 'Authorization: Bearer <YOUR_PERSONAL_ACCESS_TOKEN>' \
+  -H 'Content-Type: application/json' \
+  -d '{"input":"需要润色的内容","lang":"zh-CN","style":"professional","stream":false}'
+```
+
+`style` 支持 `polished`（自然润色）、`concise`（精简）、`professional`（专业）、
+`conversational`（口语化）和 `marketing`（营销表达）。
+
+### 标题与 Meta 描述接口
+
+`POST /api/v1/title-meta`：
+
+```bash
+curl -X POST 'https://hicms.eu.org/api/v1/title-meta' \
+  -H 'Authorization: Bearer <YOUR_PERSONAL_ACCESS_TOKEN>' \
+  -H 'Content-Type: application/json' \
+  -d '{"input":"文章正文","lang":"zh-CN","num_titles":5,"target_keyword":"内容营销","stream":false}'
+```
+
+`num_titles` 默认为 `5`，范围为 `1`–`10`；`target_keyword` 为可选目标关键词。
+结果包含候选标题列表和一条 Meta Description。
+
+### 文章结构与 FAQ 接口
+
+`POST /api/v1/structure`：
+
+```bash
+curl -X POST 'https://hicms.eu.org/api/v1/structure' \
+  -H 'Authorization: Bearer <YOUR_PERSONAL_ACCESS_TOKEN>' \
+  -H 'Content-Type: application/json' \
+  -d '{"input":"文章正文或URL","lang":"zh-CN","format":"article_and_faq","num_faq":5,"stream":false}'
+```
+
+`format` 支持 `article`、`faq` 和 `article_and_faq`；`num_faq` 默认为 `5`，
+范围为 `1`–`20`。
+
+摘要、社交文案、关键词及上述三个新接口的通用参数：
 
 - `input`：必填，文本或以 `http://`、`https://` 开头的 URL。
 - `lang`：必填，输出语系。
@@ -109,12 +151,15 @@ KTrends 可以在同一个 FastAPI 进程中提供受 Auth0 保护的 Streamable
 完整的 Auth0 与 ChatGPT 配置流程、验证命令和实际踩坑记录见
 [KTrends：Auth0 与 ChatGPT MCP 接入实操手册](docs/chatgpt-auth0-mcp-setup.md)。
 
-MCP 提供四个工具：
+MCP 提供七个工具：
 
 - `translate_text`：翻译文本。
 - `summarize_content`：总结文本或公开网页。
 - `create_social_post`：根据文本或公开网页生成社交文案。
 - `extract_keywords`：从文本或公开网页提取关键词。
+- `rewrite_content`：以指定风格改写或润色内容。
+- `create_title_meta`：生成候选标题和 Meta 描述。
+- `structure_content`：生成结构化文章、FAQ 或两者组合。
 
 ### 1. 配置 Auth0
 
@@ -186,7 +231,7 @@ npx @modelcontextprotocol/inspector@latest
 1. 打开 Settings → Security and login → Developer mode。
 2. 打开 Plugins，新增连接，地址填写 `https://hicms.eu.org/mcp`。
 3. OAuth 高级设置选择 DCR 和 `ktrends:invoke`，完成 Auth0 登录。
-4. 进入连接器详情页点击 Refresh，确认发现四个工具。首次认证后如果显示“尚无可用的
+4. 进入连接器详情页点击 Refresh，确认发现七个工具。首次认证后如果显示“尚无可用的
    应用操作”，通常只是工具列表尚未刷新。
 
 若连接失败，依次检查公网 HTTPS、well-known 元数据、Auth0 discovery/JWKS、回调地址、

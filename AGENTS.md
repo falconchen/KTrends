@@ -63,6 +63,9 @@ Current versioned endpoints:
 - `POST /api/v1/summary`
 - `POST /api/v1/social`
 - `POST /api/v1/keywords`
+- `POST /api/v1/rewrite`
+- `POST /api/v1/title-meta`
+- `POST /api/v1/structure`
 
 ## Implementation guidance
 

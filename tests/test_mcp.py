@@ -36,6 +36,9 @@ class McpProtocolTests(unittest.TestCase):
             social_post=lambda input, lang, selector: f"social:{input}:{lang}",
             keywords=lambda input, lang, count, selector: f"keywords:{count}",
             translate=lambda input, to, source: f"translated:{input}:{to}",
+            rewrite=lambda input, lang, style, selector: f"rewrite:{style}",
+            title_meta=lambda input, lang, count, keyword, selector: f"titles:{count}",
+            structure=lambda input, lang, format, count, selector: f"structure:{format}",
         )
 
     @patch.object(Auth0TokenVerifier, "verify_token", accept_test_token)
@@ -54,7 +57,15 @@ class McpProtocolTests(unittest.TestCase):
             tools = listed.json()["result"]["tools"]
             self.assertEqual(
                 {tool["name"] for tool in tools},
-                {"translate_text", "summarize_content", "create_social_post", "extract_keywords"},
+                {
+                    "translate_text",
+                    "summarize_content",
+                    "create_social_post",
+                    "extract_keywords",
+                    "rewrite_content",
+                    "create_title_meta",
+                    "structure_content",
+                },
             )
             for tool in tools:
                 self.assertTrue(tool["annotations"]["readOnlyHint"])
@@ -94,6 +105,9 @@ class McpProtocolTests(unittest.TestCase):
             social_post=lambda input, lang, selector: secret_output,
             keywords=lambda input, lang, count, selector: secret_output,
             translate=lambda input, to, source: secret_output,
+            rewrite=lambda input, lang, style, selector: secret_output,
+            title_meta=lambda input, lang, count, keyword, selector: secret_output,
+            structure=lambda input, lang, format, count, selector: secret_output,
         )
         headers = {
             "Authorization": "Bearer valid-token",
@@ -148,6 +162,9 @@ class McpProtocolTests(unittest.TestCase):
             social_post=lambda input, lang, selector: "unused",
             keywords=lambda input, lang, count, selector: "unused",
             translate=fail,
+            rewrite=lambda input, lang, style, selector: "unused",
+            title_meta=lambda input, lang, count, keyword, selector: "unused",
+            structure=lambda input, lang, format, count, selector: "unused",
         )
         headers = {
             "Authorization": "Bearer valid-token",
