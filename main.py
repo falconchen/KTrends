@@ -1,3 +1,9 @@
+from contextlib import asynccontextmanager
+import ipaddress
+import logging
+import socket
+from urllib.parse import urljoin, urlparse
+
 from fastapi import Depends, FastAPI, HTTPException, Query, Form, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -17,6 +23,8 @@ import secrets
 
 import os
 
+logger = logging.getLogger("ktrends")
+
 # Load environment variables from a .env file
 # 获取当前文件所在目录
 env_path = Path('.') / '.env'
@@ -32,6 +40,13 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 openai_base_url = os.getenv("OPENAI_BASE_URL")
 openai_model = os.getenv("OPENAI_MODEL")
 personal_access_token = os.getenv("PERSONAL_ACCESS_TOKEN")
+mcp_enabled = os.getenv("MCP_ENABLED", "false").lower() in {"1", "true", "yes"}
+mcp_public_url = os.getenv("MCP_PUBLIC_URL", "https://hicms.eu.org/mcp").rstrip("/")
+auth0_issuer_value = os.getenv("AUTH0_ISSUER", "").rstrip("/")
+auth0_issuer = f"{auth0_issuer_value}/" if auth0_issuer_value else ""
+auth0_audience = os.getenv("AUTH0_AUDIENCE", mcp_public_url)
+auth0_required_scope = os.getenv("AUTH0_REQUIRED_SCOPE", "ktrends:invoke")
+auth0_allowed_subject = os.getenv("AUTH0_ALLOWED_SUBJECT", "")
 keywords_prompt_template = os.getenv("KEYWORDS_PROMPT")
 summary_prompt_template = os.getenv("SUMMARY_PROMPT")
 socail_prompt_template = os.getenv("SOCAIL_POST_PROMPT")
@@ -45,6 +60,12 @@ lang = os.getenv("DEFAULT_LANG")
 headers = {
         'User-Agent': os.getenv("DEFAULT_UA")
 }
+
+URL_CONNECT_TIMEOUT = float(os.getenv("URL_CONNECT_TIMEOUT", "5"))
+URL_READ_TIMEOUT = float(os.getenv("URL_READ_TIMEOUT", "10"))
+URL_MAX_RESPONSE_BYTES = int(os.getenv("URL_MAX_RESPONSE_BYTES", str(2 * 1024 * 1024)))
+URL_MAX_EXTRACTED_CHARS = int(os.getenv("URL_MAX_EXTRACTED_CHARS", "100000"))
+URL_MAX_REDIRECTS = int(os.getenv("URL_MAX_REDIRECTS", "5"))
 # print(ua_string,openai_api_key,openai_base_url)
 
 
@@ -123,21 +144,67 @@ async def fetch_url(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def fetch_and_parse_url(url, headers,selector=None,timeout=10):
-        
-        html = fetch_html(url=url, headers=headers, timeout=timeout)                
+def _validate_public_url(url: str) -> None:
+    """Reject URLs that can reach local, private, or otherwise special networks."""
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise HTTPException(status_code=400, detail="Only public HTTP(S) URLs are allowed")
+    if parsed.username or parsed.password:
+        raise HTTPException(status_code=400, detail="URLs containing credentials are not allowed")
+    if parsed.hostname.lower() == "localhost":
+        raise HTTPException(status_code=400, detail="Private network URLs are not allowed")
+
+    try:
+        addresses = {item[4][0] for item in socket.getaddrinfo(parsed.hostname, parsed.port)}
+    except socket.gaierror as exc:
+        raise HTTPException(status_code=400, detail="URL hostname could not be resolved") from exc
+
+    for address in addresses:
+        ip = ipaddress.ip_address(address)
+        if not ip.is_global:
+            raise HTTPException(status_code=400, detail="Private network URLs are not allowed")
+
+
+def fetch_and_parse_url(url, headers, selector=None, timeout=None):
+        html = fetch_html(url=url, headers=headers, timeout=timeout)
         return parse_html(html, selector)
 
-def fetch_html(url, headers,timeout=10):
-        
-        response = requests.get(url, headers=headers,timeout=timeout)
-        response.raise_for_status()  # Check if the request was successful
+def fetch_html(url, headers, timeout=None):
+        current_url = url
+        request_timeout = timeout or (URL_CONNECT_TIMEOUT, URL_READ_TIMEOUT)
+        with requests.Session() as session:
+            for redirect_count in range(URL_MAX_REDIRECTS + 1):
+                _validate_public_url(current_url)
+                with session.get(
+                    current_url,
+                    headers=headers,
+                    timeout=request_timeout,
+                    allow_redirects=False,
+                    stream=True,
+                ) as response:
+                    if response.is_redirect or response.is_permanent_redirect:
+                        if redirect_count >= URL_MAX_REDIRECTS:
+                            raise HTTPException(status_code=400, detail="Too many URL redirects")
+                        location = response.headers.get("location")
+                        if not location:
+                            raise HTTPException(status_code=400, detail="Redirect is missing a location")
+                        current_url = urljoin(current_url, location)
+                        continue
 
-        # Detect the encoding of the response content using charset-normalizer
-        result = from_bytes(response.content)
-        response.encoding = result.best().encoding
+                    response.raise_for_status()
+                    chunks = []
+                    size = 0
+                    for chunk in response.iter_content(chunk_size=64 * 1024):
+                        size += len(chunk)
+                        if size > URL_MAX_RESPONSE_BYTES:
+                            raise HTTPException(status_code=413, detail="URL response is too large")
+                        chunks.append(chunk)
+                    content = b"".join(chunks)
+                    detected = from_bytes(content).best()
+                    encoding = detected.encoding if detected else "utf-8"
+                    return content.decode(encoding, errors="replace")
 
-        return response.text
+        raise HTTPException(status_code=400, detail="Unable to fetch URL")
         
 
 def parse_html(html, selector=None):
@@ -148,7 +215,17 @@ def parse_html(html, selector=None):
         selector = "body"
         
     elements = soup.select(selector)
-    content = [element.get_text(strip=True) for element in elements]
+    content = [element.get_text(" ", strip=True) for element in elements]
+    extracted_length = sum(len(item) for item in content)
+    if extracted_length > URL_MAX_EXTRACTED_CHARS:
+        remaining = URL_MAX_EXTRACTED_CHARS
+        truncated = []
+        for item in content:
+            if remaining <= 0:
+                break
+            truncated.append(item[:remaining])
+            remaining -= len(truncated[-1])
+        content = truncated
     # if selector:
     #     elements = soup.select(selector)
     #     content = [element.get_text(strip=True) for element in elements]
@@ -194,8 +271,6 @@ def get_openai_response(prompt):
             stream=False
         )
 
-        print(prompt,response)
-
         return response.choices[0].message.content.strip()
 
 
@@ -210,7 +285,6 @@ def get_openai_response_stream(prompt):
             stream=True
         )
 
-        print(prompt)
         return response
 
 
@@ -259,7 +333,6 @@ async def get_social(input: str = Form(..., description="The text from which to 
         )   
         
         result = get_openai_response(prompt)
-        print(result)
 
         if input.startswith("http://") or input.startswith("https://"):
             result  =f"{result}\n\n{input}"
@@ -291,7 +364,6 @@ async def get_summary(input: str = Form(..., description="The text or urlfrom wh
         )   
         
         result = get_openai_response(prompt)
-        print(result)
         return {
             "result": result
         } 
@@ -371,6 +443,40 @@ def prepare_content_request(request: ContentRequest):
     return input_value, output_language, css_selector
 
 
+def run_summary(input_value: str, output_language: str, css_selector: str | None = None) -> str:
+    text = process_input(input_value, css_selector)
+    prompt = summary_prompt_template.format(text=text, lang=output_language)
+    return get_openai_response(prompt)
+
+
+def run_social_post(input_value: str, output_language: str, css_selector: str | None = None) -> str:
+    text = process_input(input_value, css_selector)
+    prompt = socail_prompt_template.format(text=text, lang=output_language)
+    result = get_openai_response(prompt)
+    if input_value.startswith(("http://", "https://")):
+        result += f"\n\n{input_value}"
+    return result
+
+
+def run_keywords(
+    input_value: str,
+    output_language: str,
+    num_keywords: int = 5,
+    css_selector: str | None = None,
+) -> str:
+    text = process_input(input_value, css_selector)
+    prompt = keywords_prompt_template.format(
+        num_keywords=num_keywords,
+        text=text,
+        lang=output_language,
+    )
+    return get_openai_response(prompt)
+
+
+def run_translation(input_text: str, target_language: str, source_language: str | None = None) -> str:
+    return get_openai_response(build_translation_prompt(input_text, source_language, target_language))
+
+
 @app.post(
     "/api/v1/summary",
     dependencies=[Depends(require_personal_access_token)],
@@ -380,11 +486,11 @@ async def summarize(request: ContentRequest):
     """Summarize text or webpage content."""
     try:
         input_value, output_language, css_selector = prepare_content_request(request)
-        text = process_input(input_value, css_selector)
-        prompt = summary_prompt_template.format(text=text, lang=output_language)
         if request.stream:
+            text = process_input(input_value, css_selector)
+            prompt = summary_prompt_template.format(text=text, lang=output_language)
             return streaming_openai_response(prompt)
-        return {"result": get_openai_response(prompt)}
+        return {"result": run_summary(input_value, output_language, css_selector)}
     except HTTPException:
         raise
     except Exception as e:
@@ -400,15 +506,12 @@ async def create_social_post(request: ContentRequest):
     """Create a social-media post from text or webpage content."""
     try:
         input_value, output_language, css_selector = prepare_content_request(request)
-        text = process_input(input_value, css_selector)
-        prompt = socail_prompt_template.format(text=text, lang=output_language)
         source_suffix = f"\n\n{input_value}" if input_value.startswith(("http://", "https://")) else None
         if request.stream:
+            text = process_input(input_value, css_selector)
+            prompt = socail_prompt_template.format(text=text, lang=output_language)
             return streaming_openai_response(prompt, source_suffix)
-        result = get_openai_response(prompt)
-        if source_suffix:
-            result += source_suffix
-        return {"result": result}
+        return {"result": run_social_post(input_value, output_language, css_selector)}
     except HTTPException:
         raise
     except Exception as e:
@@ -424,15 +527,17 @@ async def extract_keywords(request: KeywordsRequest):
     """Extract keywords from text or webpage content."""
     try:
         input_value, output_language, css_selector = prepare_content_request(request)
-        text = process_input(input_value, css_selector)
-        prompt = keywords_prompt_template.format(
-            num_keywords=request.num_keywords,
-            text=text,
-            lang=output_language,
-        )
         if request.stream:
+            text = process_input(input_value, css_selector)
+            prompt = keywords_prompt_template.format(
+                num_keywords=request.num_keywords,
+                text=text,
+                lang=output_language,
+            )
             return streaming_openai_response(prompt)
-        return {"result": get_openai_response(prompt)}
+        return {
+            "result": run_keywords(input_value, output_language, request.num_keywords, css_selector)
+        }
     except HTTPException:
         raise
     except Exception as e:
@@ -457,7 +562,7 @@ async def translate(request: TranslationRequest):
 
     if not request.stream:
         try:
-            return {"result": get_openai_response(prompt)}
+            return {"result": run_translation(text, target_language, source_language)}
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
@@ -481,15 +586,43 @@ async def get_translation(input: str = Form(..., description="The text from whic
         )
 
         result = get_openai_response(prompt)
-        print(result)
 
         return {
             "result": result
         }
 
     except Exception as e:
-        print(f"Internal error: {str(e)}")
+        logger.exception("Legacy translation failed")
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+if mcp_enabled:
+    from mcp_service import create_mcp_app
+
+    mcp_asgi_app = create_mcp_app(
+        public_url=mcp_public_url,
+        issuer=auth0_issuer,
+        audience=auth0_audience,
+        required_scope=auth0_required_scope,
+        allowed_subject=auth0_allowed_subject,
+        summarize=run_summary,
+        social_post=run_social_post,
+        keywords=run_keywords,
+        translate=run_translation,
+        max_concurrency=int(os.getenv("MCP_MAX_CONCURRENCY", "4")),
+        timeout_seconds=float(os.getenv("MCP_TOOL_TIMEOUT_SECONDS", "120")),
+        rate_limit_calls=int(os.getenv("MCP_RATE_LIMIT_CALLS", "30")),
+        rate_limit_window=int(os.getenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")),
+    )
+
+    @asynccontextmanager
+    async def app_lifespan(_app):
+        async with mcp_asgi_app.router.lifespan_context(mcp_asgi_app):
+            yield
+
+    app.router.lifespan_context = app_lifespan
+    # Mount last so the existing website and REST routes keep precedence.
+    app.mount("/", mcp_asgi_app)
 
 
 # 流式输出API
@@ -607,5 +740,5 @@ async def stream_get_translation(input: str = Form(..., description="The text fr
         return StreamingResponse(generate(), media_type="text/event-stream")
 
     except Exception as e:
-        print(f"Internal error: {str(e)}")
+        logger.exception("Legacy streaming endpoint failed")
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")

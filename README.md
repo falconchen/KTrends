@@ -100,6 +100,97 @@ curl -X POST 'https://hicms.eu.org/api/v1/keywords' \
 - `lang`：必填，输出语系。
 - `css_selector`：可选；输入为 URL 时，用于提取指定网页元素。
 - `stream`：可选，默认为 `false`；设为 `true` 时返回 SSE 流。
+
+## ChatGPT MCP 服务
+
+KTrends 可以在同一个 FastAPI 进程中提供受 Auth0 保护的 Streamable HTTP MCP
+服务。MCP 默认关闭；原有网页、`/api/v1/*` 和旧版表单接口不受影响。
+
+完整的 Auth0 与 ChatGPT 配置流程、验证命令和实际踩坑记录见
+[KTrends：Auth0 与 ChatGPT MCP 接入实操手册](docs/chatgpt-auth0-mcp-setup.md)。
+
+MCP 提供四个工具：
+
+- `translate_text`：翻译文本。
+- `summarize_content`：总结文本或公开网页。
+- `create_social_post`：根据文本或公开网页生成社交文案。
+- `extract_keywords`：从文本或公开网页提取关键词。
+
+### 1. 配置 Auth0
+
+1. 在 Auth0 创建 API，Identifier 设置为 `https://hicms.eu.org/mcp`，签名算法使用
+   RS256，并添加权限 `ktrends:invoke`。
+2. 在 Settings → Advanced 启用 Dynamic Client Registration (DCR)。
+3. 将 `Username-Password-Authentication` 提升为 Domain Level connection，并允许
+   第三方应用以 user-delegated access 获得 `ktrends:invoke`。
+4. 从目标用户的 Auth0 access token 或 Auth0 用户详情取得完整 `sub`，填入
+   `AUTH0_ALLOWED_SUBJECT`。服务会拒绝其他 Auth0 用户，即使其 Token 具有相同权限。
+
+本项目使用 DCR，不要求 CIMD，也无需创建传统 Auth0 Application 或手工填写 Allowed
+Callback URLs。ChatGPT 中的 CIMD unavailable 提示在选择 DCR 时可以忽略。
+
+在 `.env` 中配置：
+
+```dotenv
+MCP_ENABLED=true
+MCP_PUBLIC_URL="https://hicms.eu.org/mcp"
+AUTH0_ISSUER="https://your-tenant.auth0.com/"
+AUTH0_AUDIENCE="https://hicms.eu.org/mcp"
+AUTH0_REQUIRED_SCOPE="ktrends:invoke"
+AUTH0_ALLOWED_SUBJECT="auth0|your-user-id"
+```
+
+`AUTH0_ISSUER` 和 Token 中的 `iss` 必须完全一致。MCP 服务会通过 Auth0 JWKS 验证
+签名，并检查 `iss`、`aud`、有效期、scope 和用户 `sub`。OAuth protected resource
+metadata 发布在 `/.well-known/oauth-protected-resource/mcp`。
+
+### 2. 部署与反向代理
+
+重新构建镜像以安装 MCP 依赖，然后启动服务：
+
+```bash
+docker compose build ktrends
+docker compose up -d ktrends
+docker compose logs --tail 50 ktrends
+```
+
+在 Nginx Proxy Manager Plus 的代理主机界面配置，而不是修改其生成文件：
+
+- `/mcp` 允许 `GET`、`POST` 和长连接，并关闭代理缓冲。
+- 转发 `Authorization`、`Accept`、`Content-Type` 和 `Mcp-Session-Id` 请求头。
+- 不缓存 `/mcp` 和 `/.well-known/oauth-protected-resource/mcp`。
+- 确认全局敏感文件规则没有拦截 `/.well-known/` 路径。
+
+可使用以下 Advanced 配置作为参考：
+
+```nginx
+proxy_http_version 1.1;
+proxy_buffering off;
+proxy_cache off;
+proxy_read_timeout 180s;
+proxy_send_timeout 180s;
+proxy_set_header Authorization $http_authorization;
+proxy_set_header Mcp-Session-Id $http_mcp_session_id;
+```
+
+### 3. 测试并连接 ChatGPT
+
+先使用 MCP Inspector 验证 OAuth 发现、登录、`tools/list` 和工具调用：
+
+```bash
+npx @modelcontextprotocol/inspector@latest
+```
+
+然后在 ChatGPT 中：
+
+1. 打开 Settings → Security and login → Developer mode。
+2. 打开 Plugins，新增连接，地址填写 `https://hicms.eu.org/mcp`。
+3. OAuth 高级设置选择 DCR 和 `ktrends:invoke`，完成 Auth0 登录。
+4. 进入连接器详情页点击 Refresh，确认发现四个工具。首次认证后如果显示“尚无可用的
+   应用操作”，通常只是工具列表尚未刷新。
+
+若连接失败，依次检查公网 HTTPS、well-known 元数据、Auth0 discovery/JWKS、回调地址、
+Token audience、`ktrends:invoke` scope、`AUTH0_ALLOWED_SUBJECT` 和反向代理缓冲设置。
 - `num_keywords`：仅关键词接口使用，默认为 `5`，范围为 `1`–`20`。
 
 所有非流式接口均返回 `{"result":"..."}`；流式接口的数据格式与翻译接口相同。

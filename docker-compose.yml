@@ -7,6 +7,12 @@ services:
       - ./:/app
     environment:
       - TZ=${TZ:-Asia/Shanghai}
+      - MCP_ENABLED=${MCP_ENABLED:-false}
+      - MCP_PUBLIC_URL=${MCP_PUBLIC_URL:-https://hicms.eu.org/mcp}
+      - AUTH0_ISSUER=${AUTH0_ISSUER:-}
+      - AUTH0_AUDIENCE=${AUTH0_AUDIENCE:-https://hicms.eu.org/mcp}
+      - AUTH0_REQUIRED_SCOPE=${AUTH0_REQUIRED_SCOPE:-ktrends:invoke}
+      - AUTH0_ALLOWED_SUBJECT=${AUTH0_ALLOWED_SUBJECT:-}
     ports:
       - "${APP_PORT:-8000}:8000"
     restart: always
